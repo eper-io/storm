@@ -5,11 +5,6 @@
 printf "" | curl -X PUT --data-binary @- $DATASET'&format=%25s' || echo Environment not set.
 curl $DATAGET/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.tig || echo Environment not set.
 
-export IMPLEMENTATION=$(cat ./res/demo.txt | curl -X PUT --data-binary @- $DATASET'&format='$DATAGET'%25s' || echo Environment not set.)
-
-# http run: IMPLEMENTATION=https://data.schmied.us/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.tig go run main.go
-# SSL run: IMPLEMENTATION=https://data.schmied.us/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.tig go run main.go
-
 tar --exclude './.git' -c . | curl -X PUT --data-binary @- $DATASET'&format=https://data.schmied.us%25s' >/tmp/codepath
 echo
 echo Code file
