@@ -206,11 +206,21 @@ func Setup() {
 			if n == 2 {
 				http.HandleFunc(value, EnglangLog())
 				http.HandleFunc(value1, func(writer http.ResponseWriter, request *http.Request) {
+					x := bytes.Buffer{}
+					y := EnglangFetch(ModificationIndex)
+					x.Write(y)
 					for {
 						select {
 						case item := <-Modifications:
-							_, _ = writer.Write(item)
+							_, _ = x.WriteString(fmt.Sprintf("%s\n", item))
 						default:
+							c := x.Bytes()
+							_, _ = writer.Write(c)
+							fmt.Println(string(c))
+							b := EnglangSet(MemCache+"?format="+MemCache+"/%25s", c)
+							if b != nil && len(c) > len(y) {
+								ModificationIndex = string(b)
+							}
 							return
 						}
 					}
@@ -284,6 +294,7 @@ func EnglangBurst(path string) func(http.ResponseWriter, *http.Request) {
 }
 
 var Modifications = make(chan []byte)
+var ModificationIndex string
 
 func EnglangLog() func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
