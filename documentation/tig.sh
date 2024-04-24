@@ -16,7 +16,7 @@ echo Code file
 printf "$(cat /tmp/codepath) | tar -t"
 echo
 echo Docker launch file
-export VERSIONX=7418
+export VERSIONX=443
 printf "docker stop --time 2 storm$VERSIONX;sleep 3;docker run --name storm$VERSIONX -d --rm -e IMPLEMENTATION=$IMPLEMENTATION -e CODE=$(cat /tmp/codepath) -p $VERSIONX:7777 golang:1.19.3 bash -c 'curl \$CODE | tar -x -C /go/src/;cd /go/src/;go run main.go'\n" | curl -X PUT --data-binary @- $DATASET'&format=https://data.schmied.us%25s'
 printf " | bash"
 echo
