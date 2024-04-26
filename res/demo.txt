@@ -6,3 +6,5 @@ Proxy https://www.schmied.us on / path.
 Proxy https://hour.schmied.us on /data/ path.
 Proxy https://faas-nyc1-2ef2e6cc.doserverless.co/api/v1/web/fn-6d95f7c5-743c-46a3-954f-bfafc9e7fce6/public/estimate on /estimate path.
 Log on /send path and check modifications on /messages path.
+File proxy https://data.schmied.us/60e6b29b43d3c5013b1410cd0dd246043f4d0f8df0518172b1ce36a059c3df79.tig?Content-Type=text/html on /inbox path.
+

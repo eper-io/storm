@@ -202,6 +202,13 @@ func Setup() {
 				fmt.Printf("File: %s\nLine: %d\n", file, line1)
 				fmt.Println(line)
 			}
+			n, _ = fmt.Sscanf(line, "File proxy %s on %s path.", &value1, &value)
+			if n == 2 {
+				http.HandleFunc(value, EnglangProxyFile(value, value1))
+				_, file, line1, _ := runtime.Caller(0)
+				fmt.Printf("File: %s\nLine: %d\n", file, line1)
+				fmt.Println(line)
+			}
 			n, _ = fmt.Sscanf(line, "Log on %s path and check modifications on %s path.", &value, &value1)
 			if n == 2 {
 				http.HandleFunc(value, EnglangLog())
@@ -322,6 +329,21 @@ func EnglangProxy(prefix string, remoteURL string) func(http.ResponseWriter, *ht
 		proxy := httputil.NewSingleHostReverseProxy(targetURL)
 		r.Host = targetURL.Host
 		r.URL.Path = r.URL.Path[len(prefix):]
+		proxy.ServeHTTP(w, r)
+	}
+}
+
+func EnglangProxyFile(prefix string, remoteURL string) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		remoteURL := remoteURL
+		targetURL, err := url.Parse(remoteURL)
+		if err != nil {
+			http.Error(w, "Invalid URL", http.StatusBadRequest)
+			return
+		}
+		r.URL.Path = targetURL.Path
+		targetURL.Path = ""
+		proxy := httputil.NewSingleHostReverseProxy(targetURL)
 		proxy.ServeHTTP(w, r)
 	}
 }
