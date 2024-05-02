@@ -3,6 +3,7 @@ package data
 import (
 	"bufio"
 	"bytes"
+	"crypto/sha256"
 	"crypto/tls"
 	"fmt"
 	"io"
@@ -25,8 +26,7 @@ import (
 // If not, see https://creativecommons.org/publicdomain/zero/1.0/legalcode.
 
 var MemCache = "https://hour.schmied.us"
-var IndexedShortCache = map[string][]byte{}
-var ListedCache = make([]string, 0)
+var BlockList = make([]string, 0)
 var LastSnapshot = ""
 
 // This should only get access from this process or Docker container
@@ -110,18 +110,7 @@ func Setup() {
 					n, _ = fmt.Sscanf(value, "Block number %06d is hashed as %s value.", &lineNumber, &value)
 					if n > 1 {
 						value = value[len(value)-64-len("/.tig") : len(value)]
-						ListedCache = append(ListedCache, value)
-						target, err := url.Parse(MemCache)
-						if err != nil {
-							return
-						}
-						target.Path = fmt.Sprintf("%s", value)
-						target.RawQuery = ""
-						data := EnglangFetch(target.String())
-						if data != nil && len(data) > 0 && len(data) < 512 {
-							IndexedShortCache[value] = data
-							fmt.Println(string(data))
-						}
+						BlockList = append(BlockList, value)
 					}
 				}
 			}
@@ -138,7 +127,7 @@ func Setup() {
 					for {
 						time.Sleep(time.Duration(minutes) * time.Minute)
 						buf := bytes.NewBuffer([]byte{})
-						for k, v := range ListedCache {
+						for k, v := range BlockList {
 							buf.WriteString(fmt.Sprintf("Block number %06d is hashed as %s value.", k, v) + "\n")
 						}
 						buf1 := EnglangPoke(MemCache+"&format=%25s", buf.Bytes())
@@ -243,17 +232,81 @@ func Setup() {
 				fmt.Printf("File: %s\nLine: %d\n", file, line1)
 				fmt.Println(line)
 			}
+			n, _ = fmt.Sscanf(line, "Response searches columnar indexes on %s path.", &value)
+			if n == 1 {
+				http.HandleFunc(value, EnglangSearch(value))
+				_, file, line1, _ := runtime.Caller(0)
+				fmt.Printf("File: %s\nLine: %d\n", file, line1)
+				fmt.Println(line)
+			}
 		}
 	}
 }
 
 var bursts = map[string]*chan string{}
 var burstRun sync.Mutex
+var commit string
+
+func EnglangSearch(unique string) func(http.ResponseWriter, *http.Request) {
+	return func(writer http.ResponseWriter, request *http.Request) {
+		path1 := request.URL.Path[len(unique):]
+		burstRun.Lock()
+		channel, ok := bursts[path1]
+		burstRun.Unlock()
+		if !ok {
+			burst := make(chan string)
+			burstRun.Lock()
+			bursts[path1] = &burst
+			burstRun.Unlock()
+			channel = &burst
+		}
+		if request.Method == "PUT" || request.Method == "POST" {
+			// add small "columnar" item
+			x := bytes.NewBuffer([]byte{})
+			_, _ = io.Copy(x, request.Body)
+			_ = request.Body.Close()
+			go func(x io.Reader, y *chan string) {
+				z, _ := io.ReadAll(x)
+				*y <- string(z)
+			}(x, channel)
+			return
+		}
+		if request.Method == "GET" {
+			// persist or commit
+			a := bytes.Buffer{}
+			d := EnglangFetch(commit)
+			a.Write(d)
+			start := time.Now()
+			for time.Now().Sub(start) < 3*time.Second {
+				select {
+				case msg := <-*channel:
+					_, _ = a.WriteString(msg)
+					_, _ = io.WriteString(&a, "\n")
+				default:
+					start = time.Now().Add(-time.Hour)
+				}
+			}
+			z := a.Bytes()
+			if len(z) > len(d) {
+				b := fmt.Sprintf(MemCache+"/%x.tig", sha256.Sum256(z))
+				EnglangPoke(MemCache, z)
+				commit = b
+			}
+		}
+		if request.Method == "GET" {
+			_, _ = writer.Write(EnglangFetch(commit))
+			return
+		}
+		http.Error(writer, "method not allowed", http.StatusMethodNotAllowed)
+	}
+}
 
 func EnglangBurst(path string) func(http.ResponseWriter, *http.Request) {
 	return func(writer http.ResponseWriter, request *http.Request) {
 		path1 := request.URL.Path[len(path):]
+		burstRun.Lock()
 		channel, ok := bursts[path1]
+		burstRun.Unlock()
 		if !ok {
 			burst := make(chan string)
 			burstRun.Lock()
@@ -349,6 +402,7 @@ func EnglangProxyFile(prefix string, remoteURL string) func(http.ResponseWriter,
 }
 
 func EnglangFetch(url string) (ret []byte) {
+	ret = []byte{}
 	resp, _ := http.Get(url)
 	if resp != nil && resp.Body != nil {
 		ret, _ = io.ReadAll(resp.Body)

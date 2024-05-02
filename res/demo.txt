@@ -1,5 +1,6 @@
 Response hello on /hello path.
 Response bursts on /burst/ path.
+Response searches columnar indexes on /columnar/ path.
 #Listen https on 7777 port with key.pem and certificate.pem set.
 Listen http on 7777 port.
 Proxy https://www.schmied.us on / path.
