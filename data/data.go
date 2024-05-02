@@ -244,61 +244,94 @@ func Setup() {
 }
 
 var bursts = map[string]*chan string{}
+var kv = map[string]string{}
 var burstRun sync.Mutex
-var commit string
+var commitFrequency = 10 * time.Second
 
 func EnglangSearch(unique string) func(http.ResponseWriter, *http.Request) {
 	return func(writer http.ResponseWriter, request *http.Request) {
+		method := request.Method
+		f := io.Writer(writer)
+		e := bytes.NewBuffer([]byte{})
+		_, _ = io.Copy(e, request.Body)
+		_ = request.Body.Close()
 		path1 := request.URL.Path[len(unique):]
-		burstRun.Lock()
-		channel, ok := bursts[path1]
-		burstRun.Unlock()
-		if !ok {
-			burst := make(chan string)
-			burstRun.Lock()
-			bursts[path1] = &burst
-			burstRun.Unlock()
-			channel = &burst
-		}
-		if request.Method == "PUT" || request.Method == "POST" {
-			// add small "columnar" item
-			x := bytes.NewBuffer([]byte{})
-			_, _ = io.Copy(x, request.Body)
-			_ = request.Body.Close()
-			go func(x io.Reader, y *chan string) {
-				z, _ := io.ReadAll(x)
-				*y <- string(z)
-			}(x, channel)
-			return
-		}
-		if request.Method == "GET" {
-			// persist or commit
-			a := bytes.Buffer{}
-			d := EnglangFetch(commit)
-			a.Write(d)
-			start := time.Now()
-			for time.Now().Sub(start) < 3*time.Second {
-				select {
-				case msg := <-*channel:
-					_, _ = a.WriteString(msg)
-					_, _ = io.WriteString(&a, "\n")
-				default:
-					start = time.Now().Add(-time.Hour)
-				}
-			}
-			z := a.Bytes()
-			if len(z) > len(d) {
-				b := fmt.Sprintf(MemCache+"/%x.tig", sha256.Sum256(z))
-				EnglangPoke(MemCache, z)
-				commit = b
-			}
-		}
-		if request.Method == "GET" {
-			_, _ = writer.Write(EnglangFetch(commit))
+		if EnglangSearchIndex(path1, method, e, f) {
 			return
 		}
 		http.Error(writer, "method not allowed", http.StatusMethodNotAllowed)
 	}
+}
+
+func EnglangSearchIndex(path string, method string, request *bytes.Buffer, response io.Writer) bool {
+	burstRun.Lock()
+	channel, ok := bursts[path]
+	burstRun.Unlock()
+	if !ok {
+		burst := make(chan string)
+		burstRun.Lock()
+		bursts[path] = &burst
+		kv[path] = ""
+		burstRun.Unlock()
+		channel = &burst
+	}
+	if method == "PUT" || method == "POST" {
+		// add small "columnar" item
+		go func(x io.Reader, y *chan string) {
+			z, _ := io.ReadAll(x)
+			*y <- string(z)
+		}(request, channel)
+		go func(path string, method string) {
+			time.Sleep(commitFrequency)
+			g := bytes.Buffer{}
+			h := bytes.Buffer{}
+			EnglangSearchIndex(path, method, &g, &h)
+		}(path, "PERSIST")
+		return true
+	}
+	if method == "PERSIST" {
+		// persist or commit
+		a := bytes.Buffer{}
+		first := true
+		start := time.Now()
+		for time.Now().Sub(start) < commitFrequency {
+			select {
+			case msg := <-*channel:
+				if first {
+					first = false
+					burstRun.Lock()
+					commit := kv[path]
+					burstRun.Unlock()
+					if commit != "" {
+						d := EnglangFetch(commit)
+						a.Write(d)
+					}
+				}
+				_, _ = a.WriteString(msg)
+				_, _ = io.WriteString(&a, "\n")
+			default:
+				start = time.Now().Add(-time.Hour)
+			}
+		}
+		z := a.Bytes()
+		if len(z) > 0 {
+			b := fmt.Sprintf(MemCache+"/%x.tig", sha256.Sum256(z))
+			// Persist
+			EnglangPoke(MemCache, z)
+			// Commit
+			burstRun.Lock()
+			kv[path] = b
+			burstRun.Unlock()
+		}
+	}
+	if method == "GET" {
+		burstRun.Lock()
+		commit := kv[path]
+		burstRun.Unlock()
+		_, _ = response.Write(EnglangFetch(commit))
+		return true
+	}
+	return false
 }
 
 func EnglangBurst(path string) func(http.ResponseWriter, *http.Request) {
