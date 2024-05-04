@@ -244,7 +244,6 @@ func Setup() {
 }
 
 var bursts = map[string]*chan string{}
-var kv = map[string]string{}
 var burstRun sync.Mutex
 var commitFrequency = 10 * time.Second
 
@@ -264,6 +263,11 @@ func EnglangSearch(unique string) func(http.ResponseWriter, *http.Request) {
 }
 
 func EnglangSearchIndex(path string, method string, request *bytes.Buffer, response io.Writer) bool {
+	pathSetKey := fmt.Sprintf("/%x.tig", sha256.Sum256([]byte(path)))
+	pathGetKey := fmt.Sprintf("/%x.tig", sha256.Sum256([]byte(pathSetKey)))
+	fmt.Println(path)
+	fmt.Println(pathSetKey)
+	fmt.Println(pathGetKey)
 	burstRun.Lock()
 	channel, ok := bursts[path]
 	burstRun.Unlock()
@@ -271,7 +275,6 @@ func EnglangSearchIndex(path string, method string, request *bytes.Buffer, respo
 		burst := make(chan string)
 		burstRun.Lock()
 		bursts[path] = &burst
-		kv[path] = ""
 		burstRun.Unlock()
 		channel = &burst
 	}
@@ -300,13 +303,14 @@ func EnglangSearchIndex(path string, method string, request *bytes.Buffer, respo
 				if first {
 					first = false
 					burstRun.Lock()
-					commit := kv[path]
+					commit := string(EnglangFetch(MemCache + pathGetKey))
 					burstRun.Unlock()
 					if commit != "" {
 						d := EnglangFetch(commit)
 						a.Write(d)
 					}
 				}
+				// Potential logarithmic insertion location
 				_, _ = a.WriteString(msg)
 				_, _ = io.WriteString(&a, "\n")
 			default:
@@ -320,13 +324,15 @@ func EnglangSearchIndex(path string, method string, request *bytes.Buffer, respo
 			EnglangPoke(MemCache, z)
 			// Commit
 			burstRun.Lock()
-			kv[path] = b
+			key := string(EnglangPoke(MemCache+pathSetKey, []byte(b)))
+			fmt.Println(key)
 			burstRun.Unlock()
 		}
 	}
 	if method == "GET" {
 		burstRun.Lock()
-		commit := kv[path]
+		commit := string(EnglangFetch(MemCache + pathGetKey))
+		fmt.Println(commit)
 		burstRun.Unlock()
 		_, _ = response.Write(EnglangFetch(commit))
 		return true
