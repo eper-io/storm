@@ -95,15 +95,16 @@ func EnglangSearchIndex(path string, method string, request *bytes.Buffer, respo
 			EnglangPoke(MemCache, z)
 			// Commit
 			burstRun.Lock()
-			key := string(EnglangPoke(MemCache+pathSetKey, []byte(b)))
-			fmt.Println(key)
+			key := string(EnglangPoke(MemCache+pathSetKey+"?format=*", []byte(b)))
+			if key != pathGetKey {
+				fmt.Println(key)
+			}
 			burstRun.Unlock()
 		}
 	}
 	if method == "GET" {
 		burstRun.Lock()
 		commit := string(EnglangFetch(MemCache + pathGetKey))
-		fmt.Println(commit)
 		burstRun.Unlock()
 		_, _ = response.Write(EnglangFetch(commit))
 		return true
