@@ -22,7 +22,7 @@ func main() {
 	i := 0
 	er := 0
 	e := make(chan time.Duration)
-	for n := 0; n < 1*1024*10; {
+	for n := 0; n < 1*1024*1000; {
 		x = x.Add(-1 * time.Hour)
 		temp := rand.NormFloat64()*5 + 36.0
 		y := fmt.Sprintf("The temperature at %s was %f degrees Fahrenheit.", x.Format("2006010215"), temp)
@@ -49,10 +49,11 @@ func main() {
 			d <- time.Now().Sub(c)
 		}(a, e)
 		n = n + 200
+		time.Sleep(100 * time.Microsecond)
 	}
 	for k := 0; k < i; k++ {
 		<-e
 	}
-	fmt.Println(i, er)
+	fmt.Println(i*200, i, er, "T", (time.Now().Sub(x)).String())
 	//ret := data.EnglangPoke(data.MemCache)
 }
