@@ -27,6 +27,16 @@ var burstRun sync.Mutex
 var commitFrequency = 10 * time.Second
 
 func EnglangSearch(unique string) func(http.ResponseWriter, *http.Request) {
+	go func() {
+		for {
+			time.Sleep(commitFrequency)
+			g := bytes.Buffer{}
+			h := bytes.Buffer{}
+			for k, _ := range bursts {
+				EnglangSearchIndex(k, "PERSIST", &g, &h)
+			}
+		}
+	}()
 	return func(writer http.ResponseWriter, request *http.Request) {
 		method := request.Method
 		f := io.Writer(writer)
@@ -60,12 +70,6 @@ func EnglangSearchIndex(path string, method string, request *bytes.Buffer, respo
 			z, _ := io.ReadAll(x)
 			*y <- string(z)
 		}(request, channel)
-		go func(path string, method string) {
-			time.Sleep(commitFrequency)
-			g := bytes.Buffer{}
-			h := bytes.Buffer{}
-			EnglangSearchIndex(path, method, &g, &h)
-		}(path, "PERSIST")
 		return true
 	}
 	if method == "PERSIST" {
