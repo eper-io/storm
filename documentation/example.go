@@ -71,7 +71,8 @@ func main() {
 	fmt.Printf("\b\b\b. Done. Querying...")
 	t = time.Now()
 	ret := string(data.EnglangFetch(index))
-	if strings.Contains(ret, time.Now().Add(-5*time.Hour).Format("2006010215")) {
+	d := fmt.Sprintf("The temperature at %s was high.", time.Now().Add(-5*time.Hour).Format("2006010215"))
+	if strings.Contains(ret, d) {
 		fmt.Printf("\b\b\b. Done. We found an entry for five hours ago. Elapsed to query: %s\n", time.Now().Sub(t).String())
 	} else {
 		fmt.Printf("\b\b\b. Done. We did not find an entry for five hours ago. Elapsed to query: %s\n", time.Now().Sub(t).String())
