@@ -17,6 +17,11 @@ import (
 // You should have received a copy of the CC0 Public Domain Dedication along with this document.
 // If not, see https://creativecommons.org/publicdomain/zero/1.0/legalcode.
 
+// ## References
+// ### Modern Columnar Databases
+// ISBN-13: 9783319373898
+// ISBN-13: 978-0131873254
+
 var bursts = map[string]*chan string{}
 var burstRun sync.Mutex
 var commitFrequency = 10 * time.Second
