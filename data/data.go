@@ -23,7 +23,7 @@ import (
 // You should have received a copy of the CC0 Public Domain Dedication along with this document.
 // If not, see https://creativecommons.org/publicdomain/zero/1.0/legalcode.
 
-var MemCache = "https://tmp.showmycard.com"
+var MemCache = "https://hour.schmied.us"
 var BlockList = make([]string, 0)
 var LastSnapshot = ""
 
@@ -233,6 +233,13 @@ func Setup() {
 			n, _ = fmt.Sscanf(line, "Response searches columnar indexes on %s path.", &value)
 			if n == 1 {
 				http.HandleFunc(value, EnglangSearch(value))
+				_, file, line1, _ := runtime.Caller(0)
+				fmt.Printf("File: %s\nLine: %d\n", file, line1)
+				fmt.Println(line)
+			}
+			n, _ = fmt.Sscanf(line, "Response load balancer on %s to %s paths.", &value, &value1)
+			if n == 2 {
+				http.HandleFunc(value, EnglangLoadBalancing(value, value1))
 				_, file, line1, _ := runtime.Caller(0)
 				fmt.Printf("File: %s\nLine: %d\n", file, line1)
 				fmt.Println(line)

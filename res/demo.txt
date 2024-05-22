@@ -3,6 +3,7 @@ Response bursts on /burst/ path.
 Response searches columnar indexes on /columnar/ path.
 #Listen https on 7777 port with key.pem and certificate.pem set.
 Listen http on 7777 port.
+Response load balancer on /portal/ to https://www.schmied.us paths.
 Proxy https://www.schmied.us on / path.
 Proxy https://hour.schmied.us on /data/ path.
 Proxy https://faas-nyc1-2ef2e6cc.doserverless.co/api/v1/web/fn-6d95f7c5-743c-46a3-954f-bfafc9e7fce6/public/estimate on /estimate path.
