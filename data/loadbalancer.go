@@ -41,11 +41,18 @@ func EnglangLoadBalancing(path string, servers string) func(http.ResponseWriter,
 						recvBytes := TmpGet(shardAddress)
 						if len(recvBytes) > 32 {
 							x := bytes.NewBuffer(recvBytes[0:32])
-							fmt.Println(string(recvBytes))
-							x.WriteString("Hello World!")
+							x.WriteString("Hello World! " + time.Now().Format(time.RFC3339Nano) + "\n")
 							z := x.Bytes()
 							TmpPut(shardAddress, z)
-							time.Sleep(5 * time.Second)
+							//go func(shardAddress string, marker []byte) {
+							//	time.Sleep(5 * time.Second)
+							//	cmp := TmpGet(shardAddress)
+							//	if bytes.Equal(marker, cmp) {
+							//		TmpDelete(shardAddress)
+							//	}
+							//}(shardAddress, recvBytes[0:32])
+						} else if len(recvBytes) > 0 {
+							fmt.Println("fdsfs")
 						}
 						time.Sleep(10 * time.Millisecond)
 					}
@@ -122,7 +129,8 @@ func EnglangLoadBalancing(path string, servers string) func(http.ResponseWriter,
 				go func(shardAddress string, sentBytes []byte, put chan []byte) {
 					var recvBytes []byte
 					for {
-						if len(recvBytes) == 0 /*|| !bytes.Equal(recvBytes, sentBytes)*/ {
+						// Just use the good old Ethernet algorithm
+						if len(recvBytes) == 0 || !bytes.Equal(recvBytes, sentBytes) {
 							if bytes.HasPrefix(recvBytes, sentBytes[0:32]) {
 								put <- recvBytes[32:]
 								TmpDelete(shardAddress)
@@ -130,7 +138,7 @@ func EnglangLoadBalancing(path string, servers string) func(http.ResponseWriter,
 							}
 							TmpPut(shardAddress, sentBytes)
 						}
-						time.Sleep(10 * time.Millisecond)
+						time.Sleep(time.Duration(rand.Int()%8) * time.Millisecond)
 						recvBytes = TmpGet(shardAddress)
 					}
 				}(shardAddress, sentBytes, results)
