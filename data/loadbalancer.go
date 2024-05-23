@@ -28,6 +28,10 @@ import (
 // Burst runners call out from servers, so port scanners cannot even find out what they do.
 // Eventually all HTTPS traffic is to be replaced with atomic datagrams.
 // You may notice less error handling. We expect an operating environment of above than average reliability.
+// Also, shards aggregate all GET responses but forward PUT only to one shard.
+// This replaces mutexes, so that it is easy to handle integrity.
+// Each shard consumes requests in a row, so it is atomic by design. The same data goes to the same shard.
+// Performance can be adjusted by setting 100, 10000, 1 million shards respectively.
 // TODO collect PUT with delayed write and compressing data
 
 var ShardList = `https://localhost.schmied.us/5b15d3f6f5309beed51d99506a3ffa2927eb647df41b0e8e5b03debd6f14ab1d.tig?shard=0
