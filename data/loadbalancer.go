@@ -10,7 +10,6 @@ import (
 	"math/rand"
 	"net/http"
 	"strings"
-	"sync"
 	"time"
 )
 
@@ -21,79 +20,42 @@ import (
 // You should have received a copy of the CC0 Public Domain Dedication along with this document.
 // If not, see https://creativecommons.org/publicdomain/zero/1.0/legalcode.
 
+var ShardList = `https://localhost.schmied.us/5b15d3f6f5309beed51d99506a3ffa2927eb647df41b0e8e5b03debd6f14ab1d.tig?shard=0
+https://localhost.schmied.us/63747a0e6ba088a0b7182f77d85b24a13de0036495b8a4042ec984b96fd5f88f.tig?shard=1`
+
 func EnglangLoadBalancing(path string, servers string) func(http.ResponseWriter, *http.Request) {
 	// TODO collect PUT with delayed write and compressing data
 
-	shardList := ""
-	var balancerLock = sync.Mutex{}
-	go func() {
-		// TODO
-		time.Sleep(100 * time.Millisecond)
-		for i := 0; i < 2; i++ {
-			time.Sleep(1 * time.Second)
-			go func(i int) {
-				rand.Seed(time.Now().UnixNano() + int64(i))
-				shardAddress := fmt.Sprintf(MemCache+"/%x.tig?shard=%d", sha256.Sum256([]byte(fmt.Sprintf("%16x%16x", rand.Uint64(), rand.Uint64()))), i)
-				req, _ := http.NewRequest("PUT", "http://127.0.0.1:7777"+path+"registernode", bytes.NewBuffer([]byte(shardAddress)))
-				_, _ = http.DefaultClient.Do(req)
-				go func(shardAddress string) {
-					TmpPut(shardAddress, []byte("ack"))
-					sentBytes := []byte{}
-					for {
-						recvBytes := TmpGet(shardAddress)
-						if len(recvBytes) > 0 && len(sentBytes) > 0 && bytes.Equal(recvBytes, sentBytes) {
-							continue
-						}
-						if len(recvBytes) == 0 {
-							sentBytes = []byte{}
-							continue
-						}
-						if len(recvBytes) > 32 {
-							x := bytes.NewBuffer(recvBytes[0:32])
-							x.WriteString("Hello World! " + time.Now().Format(time.RFC3339Nano) + "\n")
-							sentBytes = x.Bytes()
-							TmpPut(shardAddress, sentBytes)
-							time.Sleep(time.Duration(rand.Int()%3) * time.Millisecond)
-						}
-						time.Sleep(time.Duration(rand.Int()%8) * time.Millisecond)
-					}
-				}(shardAddress)
-			}(i)
-		}
-	}()
-
 	return func(writer http.ResponseWriter, request *http.Request) {
-		if request.Method == "PUT" && request.URL.Path == path+"registernode" {
-			const shardLifeTime = 100 * time.Hour
-			body, err := io.ReadAll(request.Body)
-			if err != nil {
-				return
-			}
-			node := strings.Trim(string(body), " \r\n\t")
-			balancerLock.Lock()
-			shardList = shardList + node + "\n"
-			balancerLock.Unlock()
-			go func(node string) {
-				time.Sleep(shardLifeTime)
-				balancerLock.Lock()
-				x := bufio.NewScanner(bytes.NewBufferString(shardList))
-				z := ""
-				for x.Scan() {
-					y := x.Text()
-					if y != node {
-						z = z + y + "\n"
-					}
-				}
-				shardList = z
-				balancerLock.Unlock()
-			}(node)
-			return
-		}
+		//if request.Method == "PUT" && request.URL.Path == path+"registernode" {
+		//	const shardLifeTime = 100 * time.Hour
+		//	body, err := io.ReadAll(request.Body)
+		//	if err != nil {
+		//		return
+		//	}
+		//	node := strings.Trim(string(body), " \r\n\t")
+		//	balancerLock.Lock()
+		//	ShardList = ShardList + node + "\n"
+		//	balancerLock.Unlock()
+		//	go func(node string) {
+		//		time.Sleep(shardLifeTime)
+		//		balancerLock.Lock()
+		//		x := bufio.NewScanner(bytes.NewBufferString(ShardList))
+		//		z := ""
+		//		for x.Scan() {
+		//			y := x.Text()
+		//			if y != node {
+		//				z = z + y + "\n"
+		//			}
+		//		}
+		//		ShardList = z
+		//		balancerLock.Unlock()
+		//	}(node)
+		//	return
+		//}
 		var results = make(chan []byte)
 
-		balancerLock.Lock()
-		shards := shardList
-		balancerLock.Unlock()
+		shards := ShardList
 		// Build shard count
 		m := uint64(0)
 		x := bufio.NewScanner(bytes.NewBufferString(shards))
@@ -167,6 +129,29 @@ func EnglangLoadBalancing(path string, servers string) func(http.ResponseWriter,
 			x := <-results
 			_, _ = writer.Write(x)
 		}
+	}
+}
+
+func RunShard(shardAddress string, lambda func(out *bytes.Buffer, in []byte)) {
+	TmpPut(shardAddress, []byte("ack"))
+	sentBytes := []byte{}
+	for {
+		recvBytes := TmpGet(shardAddress)
+		if len(recvBytes) > 0 && len(sentBytes) > 0 && bytes.Equal(recvBytes, sentBytes) {
+			continue
+		}
+		if len(recvBytes) == 0 {
+			sentBytes = []byte{}
+			continue
+		}
+		if len(recvBytes) > 32 {
+			x := bytes.NewBuffer(recvBytes[0:32])
+			lambda(x, recvBytes)
+			sentBytes = x.Bytes()
+			TmpPut(shardAddress, sentBytes)
+			time.Sleep(time.Duration(rand.Int()%3) * time.Millisecond)
+		}
+		time.Sleep(time.Duration(rand.Int()%8) * time.Millisecond)
 	}
 }
 
