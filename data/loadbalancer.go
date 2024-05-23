@@ -23,7 +23,7 @@ import (
 
 func EnglangLoadBalancing(path string, servers string) func(http.ResponseWriter, *http.Request) {
 	// TODO collect PUT with delayed write and compressing data
-	rand.Seed(time.Now().UnixNano())
+
 	shardList := ""
 	var balancerLock = sync.Mutex{}
 	go func() {
@@ -32,29 +32,31 @@ func EnglangLoadBalancing(path string, servers string) func(http.ResponseWriter,
 		for i := 0; i < 2; i++ {
 			time.Sleep(1 * time.Second)
 			go func(i int) {
+				rand.Seed(time.Now().UnixNano() + int64(i))
 				shardAddress := fmt.Sprintf(MemCache+"/%x.tig?shard=%d", sha256.Sum256([]byte(fmt.Sprintf("%16x%16x", rand.Uint64(), rand.Uint64()))), i)
 				req, _ := http.NewRequest("PUT", "http://127.0.0.1:7777"+path+"registernode", bytes.NewBuffer([]byte(shardAddress)))
 				_, _ = http.DefaultClient.Do(req)
 				go func(shardAddress string) {
-					TmpDelete(shardAddress)
+					TmpPut(shardAddress, []byte("ack"))
+					sentBytes := []byte{}
 					for {
 						recvBytes := TmpGet(shardAddress)
+						if len(recvBytes) > 0 && len(sentBytes) > 0 && bytes.HasPrefix(recvBytes, sentBytes) {
+							continue
+						}
+						if len(recvBytes) == 0 {
+							sentBytes = []byte{}
+							continue
+						}
 						if len(recvBytes) > 32 {
 							x := bytes.NewBuffer(recvBytes[0:32])
 							x.WriteString("Hello World! " + time.Now().Format(time.RFC3339Nano) + "\n")
-							z := x.Bytes()
-							TmpPut(shardAddress, z)
-							//go func(shardAddress string, marker []byte) {
-							//	time.Sleep(5 * time.Second)
-							//	cmp := TmpGet(shardAddress)
-							//	if bytes.Equal(marker, cmp) {
-							//		TmpDelete(shardAddress)
-							//	}
-							//}(shardAddress, recvBytes[0:32])
-						} else if len(recvBytes) > 0 {
-							fmt.Println("fdsfs")
+							sentBytes = x.Bytes()
+							TmpPut(shardAddress, sentBytes)
+							sentBytes = sentBytes[0:32]
+							time.Sleep(time.Duration(rand.Int()%3) * time.Millisecond)
 						}
-						time.Sleep(10 * time.Millisecond)
+						time.Sleep(time.Duration(rand.Int()%8) * time.Millisecond)
 					}
 				}(shardAddress)
 			}(i)
@@ -63,7 +65,7 @@ func EnglangLoadBalancing(path string, servers string) func(http.ResponseWriter,
 
 	return func(writer http.ResponseWriter, request *http.Request) {
 		if request.Method == "PUT" && request.URL.Path == path+"registernode" {
-			const shardLifeTime = 100 * time.Second
+			const shardLifeTime = 100 * time.Hour
 			body, err := io.ReadAll(request.Body)
 			if err != nil {
 				return
@@ -90,9 +92,12 @@ func EnglangLoadBalancing(path string, servers string) func(http.ResponseWriter,
 		}
 		var results = make(chan []byte)
 
+		balancerLock.Lock()
+		shards := shardList
+		balancerLock.Unlock()
 		// Build shard count
 		m := uint64(0)
-		x := bufio.NewScanner(bytes.NewBufferString(shardList))
+		x := bufio.NewScanner(bytes.NewBufferString(shards))
 		for x.Scan() {
 			y := x.Text()
 			if strings.TrimSpace(y) != "" {
@@ -107,7 +112,7 @@ func EnglangLoadBalancing(path string, servers string) func(http.ResponseWriter,
 		shard = GetShard(rPath, rBody, m)
 
 		// Send request to shards
-		x = bufio.NewScanner(bytes.NewBufferString(shardList))
+		x = bufio.NewScanner(bytes.NewBufferString(shards))
 		n := 0
 		for x.Scan() {
 			shardAddress := x.Text()
@@ -128,18 +133,32 @@ func EnglangLoadBalancing(path string, servers string) func(http.ResponseWriter,
 				n++
 				go func(shardAddress string, sentBytes []byte, put chan []byte) {
 					var recvBytes []byte
+					// Just use the good old Ethernet algorithm
+					// It has been working for decades for datacenter networks.
+					TmpPut(shardAddress, sentBytes)
 					for {
-						// Just use the good old Ethernet algorithm
-						if len(recvBytes) == 0 || !bytes.Equal(recvBytes, sentBytes) {
-							if bytes.HasPrefix(recvBytes, sentBytes[0:32]) {
-								put <- recvBytes[32:]
-								TmpDelete(shardAddress)
-								return
-							}
+						recvBytes = TmpGet(shardAddress)
+						if len(recvBytes) == 0 {
+							// TODO
+							recvBytes = TmpGet(shardAddress)
+						}
+						if len(recvBytes) < 32 {
+							// Retry
+							// This might sound too unprofessional.
+							// The basic idea is that 99.9% of the cases have atomicity, consistency, integrity.
+							// Many programming languages assign 50%+ resources and code to solve these.
+							// We do it here with just three lines.
 							TmpPut(shardAddress, sentBytes)
+							continue
+						}
+						if bytes.HasPrefix(recvBytes, sentBytes[0:32]) && !bytes.Equal(recvBytes, sentBytes) {
+							// Reply
+							put <- recvBytes[32:]
+							// Acknowledge
+							TmpPut(shardAddress, []byte("ack"))
+							return
 						}
 						time.Sleep(time.Duration(rand.Int()%8) * time.Millisecond)
-						recvBytes = TmpGet(shardAddress)
 					}
 				}(shardAddress, sentBytes, results)
 			}
