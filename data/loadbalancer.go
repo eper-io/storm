@@ -33,6 +33,9 @@ import (
 // Each shard consumes requests in a row, so it is atomic by design. The same data goes to the same shard.
 // Performance can be adjusted by setting 100, 10000, 1 million shards respectively.
 // It is implemented with Tig, but it is easy to attach MSSQL, S3, Redis, Mongodb, Cassandra, on the other side.
+// You noticed that we stick to less than few hundred lines of code per feature.
+// We remove the extra complexity of empirical arts of the programming platforms.
+// This enables cheaper artificial intelligence training solutions.
 // TODO collect PUT with delayed write and data compressing
 
 var ShardList = `https://localhost.schmied.us/5b15d3f6f5309beed51d99506a3ffa2927eb647df41b0e8e5b03debd6f14ab1d.tig?shard=0
