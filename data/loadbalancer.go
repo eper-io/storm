@@ -27,6 +27,7 @@ import (
 // Not leaving an external endpoint enhances the security above the current level of tech companies.
 // Burst runners call out from servers, so port scanners cannot even find out what they do.
 // Eventually all HTTPS traffic is to be replaced with atomic datagrams.
+// You may notice less error handling. We expect an operating environment of above than average reliability.
 // TODO collect PUT with delayed write and compressing data
 
 var ShardList = `https://localhost.schmied.us/5b15d3f6f5309beed51d99506a3ffa2927eb647df41b0e8e5b03debd6f14ab1d.tig?shard=0
