@@ -20,6 +20,13 @@ import (
 // You should have received a copy of the CC0 Public Domain Dedication along with this document.
 // If not, see https://creativecommons.org/publicdomain/zero/1.0/legalcode.
 
+// This is an educational serverless lambda implementation with bursts.
+// We use bursts that are pull model instead of push model of callable functions.
+// Bursts allow super flexible and dynamic use of scrips running on expensive GPU machines.
+// This saves money, so that you can buy even more GPUs.
+// Not leaving an external endpoint enhances the security above the current level of tech companies.
+// Burst runners call out from servers, so port scanners cannot even find them.
+
 var ShardList = `https://localhost.schmied.us/5b15d3f6f5309beed51d99506a3ffa2927eb647df41b0e8e5b03debd6f14ab1d.tig?shard=0
 https://localhost.schmied.us/63747a0e6ba088a0b7182f77d85b24a13de0036495b8a4042ec984b96fd5f88f.tig?shard=1`
 
@@ -27,32 +34,6 @@ func EnglangLoadBalancing(path string, servers string) func(http.ResponseWriter,
 	// TODO collect PUT with delayed write and compressing data
 
 	return func(writer http.ResponseWriter, request *http.Request) {
-		//if request.Method == "PUT" && request.URL.Path == path+"registernode" {
-		//	const shardLifeTime = 100 * time.Hour
-		//	body, err := io.ReadAll(request.Body)
-		//	if err != nil {
-		//		return
-		//	}
-		//	node := strings.Trim(string(body), " \r\n\t")
-		//	balancerLock.Lock()
-		//	ShardList = ShardList + node + "\n"
-		//	balancerLock.Unlock()
-		//	go func(node string) {
-		//		time.Sleep(shardLifeTime)
-		//		balancerLock.Lock()
-		//		x := bufio.NewScanner(bytes.NewBufferString(ShardList))
-		//		z := ""
-		//		for x.Scan() {
-		//			y := x.Text()
-		//			if y != node {
-		//				z = z + y + "\n"
-		//			}
-		//		}
-		//		ShardList = z
-		//		balancerLock.Unlock()
-		//	}(node)
-		//	return
-		//}
 		var results = make(chan []byte)
 
 		shards := ShardList
