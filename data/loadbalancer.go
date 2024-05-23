@@ -22,17 +22,16 @@ import (
 
 // This is an educational serverless lambda implementation with bursts.
 // We use bursts that are pull model instead of push model of callable functions.
-// Bursts allow super flexible and dynamic use of scrips running on expensive GPU machines.
+// Bursts allow super flexible and dynamic use of scripts running on expensive GPU machines.
 // This saves money, so that you can buy even more GPUs.
 // Not leaving an external endpoint enhances the security above the current level of tech companies.
 // Burst runners call out from servers, so port scanners cannot even find them.
+// TODO collect PUT with delayed write and compressing data
 
 var ShardList = `https://localhost.schmied.us/5b15d3f6f5309beed51d99506a3ffa2927eb647df41b0e8e5b03debd6f14ab1d.tig?shard=0
 https://localhost.schmied.us/63747a0e6ba088a0b7182f77d85b24a13de0036495b8a4042ec984b96fd5f88f.tig?shard=1`
 
 func EnglangLoadBalancing(path string, servers string) func(http.ResponseWriter, *http.Request) {
-	// TODO collect PUT with delayed write and compressing data
-
 	return func(writer http.ResponseWriter, request *http.Request) {
 		var results = make(chan []byte)
 
