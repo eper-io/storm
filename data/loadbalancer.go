@@ -32,7 +32,8 @@ import (
 // This replaces mutexes, so that it is easy to handle integrity.
 // Each shard consumes requests in a row, so it is atomic by design. The same data goes to the same shard.
 // Performance can be adjusted by setting 100, 10000, 1 million shards respectively.
-// TODO collect PUT with delayed write and compressing data
+// It is implemented with Tig, but it is easy to attach MSSQL, S3, Redis, Mongodb, Cassandra, on the other side.
+// TODO collect PUT with delayed write and data compressing
 
 var ShardList = `https://localhost.schmied.us/5b15d3f6f5309beed51d99506a3ffa2927eb647df41b0e8e5b03debd6f14ab1d.tig?shard=0
 https://localhost.schmied.us/63747a0e6ba088a0b7182f77d85b24a13de0036495b8a4042ec984b96fd5f88f.tig?shard=1`
