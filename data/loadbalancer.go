@@ -41,7 +41,7 @@ func EnglangLoadBalancing(path string, servers string) func(http.ResponseWriter,
 					sentBytes := []byte{}
 					for {
 						recvBytes := TmpGet(shardAddress)
-						if len(recvBytes) > 0 && len(sentBytes) > 0 && bytes.HasPrefix(recvBytes, sentBytes) {
+						if len(recvBytes) > 0 && len(sentBytes) > 0 && bytes.Equal(recvBytes, sentBytes) {
 							continue
 						}
 						if len(recvBytes) == 0 {
@@ -53,7 +53,6 @@ func EnglangLoadBalancing(path string, servers string) func(http.ResponseWriter,
 							x.WriteString("Hello World! " + time.Now().Format(time.RFC3339Nano) + "\n")
 							sentBytes = x.Bytes()
 							TmpPut(shardAddress, sentBytes)
-							sentBytes = sentBytes[0:32]
 							time.Sleep(time.Duration(rand.Int()%3) * time.Millisecond)
 						}
 						time.Sleep(time.Duration(rand.Int()%8) * time.Millisecond)
@@ -149,6 +148,7 @@ func EnglangLoadBalancing(path string, servers string) func(http.ResponseWriter,
 							// Many programming languages assign 50%+ resources and code to solve these.
 							// We do it here with just three lines.
 							TmpPut(shardAddress, sentBytes)
+							time.Sleep(time.Duration(rand.Int()%8) * time.Millisecond)
 							continue
 						}
 						if bytes.HasPrefix(recvBytes, sentBytes[0:32]) && !bytes.Equal(recvBytes, sentBytes) {
