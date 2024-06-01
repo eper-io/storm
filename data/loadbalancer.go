@@ -38,8 +38,7 @@ import (
 // This enables cheaper artificial intelligence training solutions.
 // TODO collect PUT with delayed write and data compressing
 
-var ShardList = `https://localhost.schmied.us/5b15d3f6f5309beed51d99506a3ffa2927eb647df41b0e8e5b03debd6f14ab1d.tig?shard=0
-https://localhost.schmied.us/63747a0e6ba088a0b7182f77d85b24a13de0036495b8a4042ec984b96fd5f88f.tig?shard=1`
+var ShardList = ""
 
 func EnglangLoadBalancing(path string, servers string) func(http.ResponseWriter, *http.Request) {
 	return func(writer http.ResponseWriter, request *http.Request) {

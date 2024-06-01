@@ -29,7 +29,7 @@ var LastSnapshot = ""
 
 // This should only get access from this process or Docker container
 // It is ideally the $(HOME)
-var Dir = "/tmp"
+var Dir = "/data"
 
 func Setup() {
 	if os.Getenv("IMPLEMENTATION") == "" {
@@ -93,6 +93,13 @@ func Setup() {
 				fmt.Printf("File: %s\nLine: %d\n", file, line1)
 				fmt.Println(line)
 			}
+			n, _ = fmt.Sscanf(line, "Set shard list to %s value.", &value)
+			if n == 1 {
+				ShardList = string(EnglangFetch(value))
+				_, file, line1, _ := runtime.Caller(0)
+				fmt.Printf("File: %s\nLine: %d\n", file, line1)
+				fmt.Println(line)
+			}
 			n, _ = fmt.Sscanf(line, "Load memory snapshot from %s value.", &value)
 			if n == 1 {
 				_, file, line1, _ := runtime.Caller(0)
@@ -149,25 +156,27 @@ func Setup() {
 			var decimal int
 			n, _ = fmt.Sscanf(line, "Listen http on %d port.", &decimal)
 			if n == 1 {
-				go func() {
-					_ = http.ListenAndServe(":7777", nil)
-				}()
+				go func(port int) {
+					fmt.Printf("Listening on port %d\n", port)
+					_ = http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
+				}(decimal)
 				_, file, line1, _ := runtime.Caller(0)
 				fmt.Printf("File: %s\nLine: %d\n", file, line1)
 				fmt.Println(line)
 			}
 			n, _ = fmt.Sscanf(line, "Listen https on %d port with key.pem and certificate.pem set.", &decimal)
 			if n == 1 {
-				go func() {
+				go func(port int) {
 					_, err := os.Stat(path.Join(Dir, "key.pem"))
 					if err == nil {
 						_, err = tls.LoadX509KeyPair(path.Join(Dir, "certificate.pem"), path.Join(Dir, "key.pem"))
 						if err != nil {
 							fmt.Println(err)
 						}
-						err = http.ListenAndServeTLS(":7777", path.Join(Dir, "certificate.pem"), path.Join(Dir, "key.pem"), nil)
+						fmt.Printf("Listening on port %d\n", port)
+						err = http.ListenAndServeTLS(fmt.Sprintf(":%d", port), path.Join(Dir, "certificate.pem"), path.Join(Dir, "key.pem"), nil)
 					}
-				}()
+				}(decimal)
 				_, file, line1, _ := runtime.Caller(0)
 				fmt.Printf("File: %s\nLine: %d\n", file, line1)
 				fmt.Println(line)

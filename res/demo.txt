@@ -1,7 +1,8 @@
+Set shard list to https://data.schmied.us/295b5019b70eb5f8d145b2ab27a2f26b1346a404fab5c1b3712d44bead215bd7.tig value.
 Response hello on /hello path.
 Response bursts on /burst/ path.
 Response searches columnar indexes on /columnar/ path.
-#Listen https on 7777 port with key.pem and certificate.pem set.
+Listen https on 443 port with key.pem and certificate.pem set.
 Listen http on 7777 port.
 Response load balancer on /portal/ to https://www.schmied.us paths.
 Proxy https://www.schmied.us on / path.
