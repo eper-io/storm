@@ -74,7 +74,11 @@ func EnglangLoadBalancing(path string, shardList string) func(http.ResponseWrite
 			}
 			if useThisShard {
 				sent := bytes.NewBufferString(fmt.Sprintf("%16x%16x\n", rand.Uint64(), rand.Uint64()))
-				sent.WriteString(rPath + "?" + request.URL.RawQuery + "\n")
+				query := ""
+				if request.URL.RawQuery != "" {
+					query = "?" + request.URL.RawQuery
+				}
+				sent.WriteString(rPath + query + "\n")
 				sent.Write(rBody)
 				sentBytes := sent.Bytes()
 				ch := make(chan []byte)
@@ -117,6 +121,27 @@ func EnglangLoadBalancing(path string, shardList string) func(http.ResponseWrite
 			x := <-(*results[i])
 			_, _ = writer.Write(x)
 		}
+	}
+}
+
+func RunShardIndex(shardKey string, shardIndex int, lambda func(out *bytes.Buffer, in []byte, i int)) {
+	currentShards := TmpGet(shardKey)
+	if string(currentShards) == "" {
+		return
+	}
+	shards := string(TmpGet(shardKey))
+	list := string(TmpGet(shards))
+	x := bufio.NewScanner(bytes.NewBufferString(list))
+	n := 0
+	for x.Scan() {
+		shardAddress := x.Text()
+		time.Sleep(1 * time.Millisecond)
+		if n == shardIndex {
+			go func(shardAddress string, shardIndex int) {
+				RunShard(shardAddress, shardIndex, lambda)
+			}(shardAddress, n)
+		}
+		n++
 	}
 }
 
