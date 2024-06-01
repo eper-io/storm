@@ -53,7 +53,7 @@ func EnglangSearch(unique string) func(http.ResponseWriter, *http.Request) {
 
 func EnglangSearchIndex(path string, method string, request *bytes.Buffer, response io.Writer) bool {
 	pathSetKey := fmt.Sprintf("/%x.tig", sha256.Sum256([]byte(path)))
-	pathGetKey := fmt.Sprintf("/%x.tig", sha256.Sum256([]byte(pathSetKey)))
+	pathGetKey := pathSetKey
 	burstRun.Lock()
 	channel, ok := bursts[path]
 	burstRun.Unlock()

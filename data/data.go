@@ -23,7 +23,7 @@ import (
 // You should have received a copy of the CC0 Public Domain Dedication along with this document.
 // If not, see https://creativecommons.org/publicdomain/zero/1.0/legalcode.
 
-var MemCache = "https://localhost.schmied.us"
+var MemCache = "https://hour.schmied.us"
 var BlockList = make([]string, 0)
 var LastSnapshot = ""
 
@@ -93,9 +93,10 @@ func Setup() {
 				fmt.Printf("File: %s\nLine: %d\n", file, line1)
 				fmt.Println(line)
 			}
-			n, _ = fmt.Sscanf(line, "Set shard list to %s value.", &value)
-			if n == 1 {
-				ShardList = string(EnglangFetch(value))
+			var key string
+			n, _ = fmt.Sscanf(line, "Set the value of key %s to %s value.", &key, &value)
+			if n == 2 {
+				TmpPut(key, []byte(value))
 				_, file, line1, _ := runtime.Caller(0)
 				fmt.Printf("File: %s\nLine: %d\n", file, line1)
 				fmt.Println(line)
@@ -246,9 +247,11 @@ func Setup() {
 				fmt.Printf("File: %s\nLine: %d\n", file, line1)
 				fmt.Println(line)
 			}
-			n, _ = fmt.Sscanf(line, "Response load balancer on %s to %s paths.", &value, &value1)
+			n, _ = fmt.Sscanf(line, "Response load balancer on %s to shard list from %s paths.", &value, &value1)
 			if n == 2 {
-				http.HandleFunc(value, EnglangLoadBalancing(value, value1))
+				shardListPointer := string(EnglangFetch(value1))
+				shardList := string(EnglangFetch(shardListPointer))
+				http.HandleFunc(value, EnglangLoadBalancing(value, shardList))
 				_, file, line1, _ := runtime.Caller(0)
 				fmt.Printf("File: %s\nLine: %d\n", file, line1)
 				fmt.Println(line)

@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"crypto/sha256"
 	"fmt"
 	"os"
 	"storm/data"
@@ -10,22 +11,29 @@ import (
 )
 
 func main() {
-	if os.Getenv("IMPLEMENTATION") == "" {
-		_ = os.Setenv("IMPLEMENTATION", "./res/demo.txt")
+	TmpMemory := "https://hour.schmied.us"
+	key := "55E2C4BE-A96C-46A2-AADD-80715E0A16CD"
+	pathSetKey := fmt.Sprintf("/%x.tig", sha256.Sum256([]byte(key)))
+	currentShards := data.TmpGet(TmpMemory + pathSetKey)
+	if string(currentShards) == "" {
+		fmt.Println(fmt.Sprintf("no shards at %s => %s", key, fmt.Sprintf(TmpMemory)+pathSetKey))
+		os.Exit(1)
 	}
-	shards := string(data.TmpGet("https://data.schmied.us/295b5019b70eb5f8d145b2ab27a2f26b1346a404fab5c1b3712d44bead215bd7.tig"))
-	fmt.Println(shards)
-	x := bufio.NewScanner(bytes.NewBufferString(shards))
+	shards := string(data.TmpGet(TmpMemory + pathSetKey))
+	list := string(data.TmpGet(shards))
+	x := bufio.NewScanner(bytes.NewBufferString(list))
+	n := 0
 	for x.Scan() {
 		shardAddress := x.Text()
-		time.Sleep(1 * time.Second)
-		go func(shardAddress string) {
-			data.RunShard(shardAddress, RunServerlessLambdaBurst)
-		}(shardAddress)
+		time.Sleep(1 * time.Millisecond)
+		go func(shardAddress string, shardIndex int) {
+			data.RunShard(shardAddress, shardIndex, RunServerlessLambdaBurst)
+		}(shardAddress, n)
+		n++
 	}
 	time.Sleep(100 * time.Hour)
 }
 
-func RunServerlessLambdaBurst(out *bytes.Buffer, in []byte) {
-	(*out).WriteString(fmt.Sprintf("Hello World! %s %d\n", time.Now().Format(time.RFC3339Nano), len(string(in))))
+func RunServerlessLambdaBurst(out *bytes.Buffer, in []byte, shard int) {
+	(*out).WriteString(fmt.Sprintf("Shard: %d\nTime:%s\nIn:\n%s\nOut:\n%s\n", shard, time.Now().Format(time.RFC3339Nano), string(in), "Hello World!"))
 }

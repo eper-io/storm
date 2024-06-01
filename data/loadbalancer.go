@@ -38,13 +38,9 @@ import (
 // This enables cheaper artificial intelligence training solutions.
 // TODO collect PUT with delayed write and data compressing
 
-var ShardList = ""
-
-func EnglangLoadBalancing(path string, servers string) func(http.ResponseWriter, *http.Request) {
+func EnglangLoadBalancing(path string, shardList string) func(http.ResponseWriter, *http.Request) {
 	return func(writer http.ResponseWriter, request *http.Request) {
-		var results = make(chan []byte)
-
-		shards := ShardList
+		shards := shardList
 		// Build shard count
 		m := uint64(0)
 		x := bufio.NewScanner(bytes.NewBufferString(shards))
@@ -54,11 +50,12 @@ func EnglangLoadBalancing(path string, servers string) func(http.ResponseWriter,
 				m++
 			}
 		}
+		var results = make([]*chan []byte, 0)
 
 		// Build shard index
 		shard := ""
 		rBody, _ := io.ReadAll(request.Body)
-		rPath := request.URL.Path[len(path):]
+		rPath := "/" + request.URL.Path[len(path):]
 		shard = GetShard(rPath, rBody, m)
 
 		// Send request to shards
@@ -77,11 +74,13 @@ func EnglangLoadBalancing(path string, servers string) func(http.ResponseWriter,
 			}
 			if useThisShard {
 				sent := bytes.NewBufferString(fmt.Sprintf("%16x%16x\n", rand.Uint64(), rand.Uint64()))
-				sent.WriteString(rPath + "\n")
+				sent.WriteString(rPath + "?" + request.URL.RawQuery + "\n")
 				sent.Write(rBody)
 				sentBytes := sent.Bytes()
+				ch := make(chan []byte)
+				results = append(results, &ch)
 				n++
-				go func(shardAddress string, sentBytes []byte, put chan []byte) {
+				go func(shardAddress string, sentBytes []byte, put *chan []byte) {
 					var recvBytes []byte
 					// Just use the good old Ethernet algorithm
 					// It has been working for decades for datacenter networks.
@@ -104,24 +103,24 @@ func EnglangLoadBalancing(path string, servers string) func(http.ResponseWriter,
 						}
 						if bytes.HasPrefix(recvBytes, sentBytes[0:32]) && !bytes.Equal(recvBytes, sentBytes) {
 							// Reply
-							put <- recvBytes[32:]
+							(*put) <- recvBytes[32:]
 							// Acknowledge
 							TmpPut(shardAddress, []byte("ack"))
 							return
 						}
 						time.Sleep(time.Duration(rand.Int()%8) * time.Millisecond)
 					}
-				}(shardAddress, sentBytes, results)
+				}(shardAddress, sentBytes, &ch)
 			}
 		}
 		for i := 0; i < n; i++ {
-			x := <-results
+			x := <-(*results[i])
 			_, _ = writer.Write(x)
 		}
 	}
 }
 
-func RunShard(shardAddress string, lambda func(out *bytes.Buffer, in []byte)) {
+func RunShard(shardAddress string, i int, lambda func(out *bytes.Buffer, in []byte, i int)) {
 	TmpPut(shardAddress, []byte("ack"))
 	sentBytes := []byte{}
 	for {
@@ -135,7 +134,7 @@ func RunShard(shardAddress string, lambda func(out *bytes.Buffer, in []byte)) {
 		}
 		if len(recvBytes) > 32 {
 			x := bytes.NewBuffer(recvBytes[0:32])
-			lambda(x, recvBytes)
+			lambda(x, recvBytes, i)
 			sentBytes = x.Bytes()
 			TmpPut(shardAddress, sentBytes)
 			time.Sleep(time.Duration(rand.Int()%3) * time.Millisecond)
