@@ -3,9 +3,11 @@ package data
 import (
 	"bufio"
 	"bytes"
+	"crypto/sha256"
 	"crypto/tls"
 	"fmt"
 	"io"
+	"math/rand"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -97,6 +99,20 @@ func Setup() {
 			n, _ = fmt.Sscanf(line, "Set the value of key %s to %s value.", &key, &value)
 			if n == 2 {
 				TmpPut(key, []byte(value))
+				_, file, line1, _ := runtime.Caller(0)
+				fmt.Printf("File: %s\nLine: %d\n", file, line1)
+				fmt.Println(line)
+			}
+			var num int
+			n, _ = fmt.Sscanf(line, "Set the value of key %s to a value of %d shards.", &key, &num)
+			if n == 2 {
+				buf := bytes.Buffer{}
+				for i := 0; i < num; i++ {
+					key1 := bytes.NewBufferString(fmt.Sprintf("%16x%16x%16x%16x", rand.Uint64(), rand.Uint64(), rand.Uint64(), rand.Uint64()))
+					buf.WriteString(fmt.Sprintf(MemCache+"/%x.tig"+"?shard=%d"+"\n", sha256.Sum256(key1.Bytes()), i))
+				}
+				address := TmpPut(fmt.Sprintf("%s?format=%s*", MemCache, MemCache), buf.Bytes())
+				TmpPut(key, address)
 				_, file, line1, _ := runtime.Caller(0)
 				fmt.Printf("File: %s\nLine: %d\n", file, line1)
 				fmt.Println(line)

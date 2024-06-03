@@ -2,18 +2,14 @@ package main
 
 import (
 	"bytes"
-	"crypto/sha256"
 	"fmt"
 	"storm/data"
 	"time"
 )
 
 func main() {
-	TmpMemory := "https://hour.schmied.us"
-	key := "55E2C4BE-A96C-46A2-AADD-80715E0A16CD"
-	pathSetKey := fmt.Sprintf("/%x.tig", sha256.Sum256([]byte(key)))
-	data.RunShardIndex(TmpMemory+pathSetKey, 0, RunServerlessLambdaBurst)
-	data.RunShardIndex(TmpMemory+pathSetKey, 1, RunServerlessLambdaBurst)
+	api := "https://hour.schmied.us/df94d5658feda65e9d5cdac6bcd50b8012c835ab884f0a74c5fa46e396b05ae7.tig"
+	data.RunShardList(api, RunServerlessLambdaBurst)
 	for {
 		// Infinite loop
 		time.Sleep(10 * time.Second)
