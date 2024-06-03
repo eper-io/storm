@@ -10,6 +10,18 @@ import (
 	"time"
 )
 
+// This document is Licensed under Creative Commons CC0.
+// To the extent possible under law, the author(s) have dedicated all copyright and related and neighboring rights
+// to this document to the public domain worldwide.
+// This document is distributed without any warranty.
+// You should have received a copy of the CC0 Public Domain Dedication along with this document.
+// If not, see https://creativecommons.org/publicdomain/zero/1.0/legalcode.
+
+// Example request:
+// curl -X 'PUT' -d 'abcdef' 'http://127.0.0.1:7777/portal/abcd'
+// Example request:
+// curl -X 'GET' 'http://127.0.0.1:7777/portal/abcd'
+
 func main() {
 	api := "https://hour.schmied.us/df94d5658feda65e9d5cdac6bcd50b8012c835ab884f0a74c5fa46e396b05ae7.tig"
 	data.RunShardList(api, RunServerlessLambdaBurstOnHttp)
@@ -39,30 +51,30 @@ func (s *serverlessHttpWriter) WriteHeader(statusCode int) {
 }
 
 func RunServerlessLambdaBurstOnHttp(out *bytes.Buffer, in []byte, shard int) {
-	y := in
-	x := bytes.IndexByte(in, '\n')
-	u := ""
-	if x != -1 {
-		z := x + 1
-		x = bytes.IndexByte(in[z:], '\n')
-		u = string(in[z : z+x])
-		x = z + x + 1
-	} else {
+	x := bytes.SplitN(in, []byte{'\n'}, 4)
+	if len(x) != 4 {
 		// Fallback path
 		(*out).WriteString(fmt.Sprintf("Shard: %d\nTime:%s\nIn:\n%s\nOut:\n%s\n", shard, time.Now().Format(time.RFC3339Nano), string(in), "Hello World!"))
+		return
 	}
-	if x != -1 {
-		y = in[x:]
-	}
-	request := bytes.NewBuffer(y)
-	req, _ := http.NewRequest("PUT", u, request)
+	m := string(x[1])
+	u := string(x[2])
+	request := bytes.NewBuffer(x[3])
+	fmt.Println(u, m, request.Len())
+	req, _ := http.NewRequest(m, u, request)
+	//if req == nil {
+	//	req, _ = http.NewRequest(m, u, nil)
+	//}
 	var z serverlessHttpWriter
 	MyHttpHandler(&z, req)
 	out.WriteString(fmt.Sprintf("Shard: %d\nTime:%s\n%s", shard, time.Now().Format(time.RFC3339Nano), string(z.out.Bytes())))
 }
 
 func MyHttpHandler(out http.ResponseWriter, in *http.Request) {
-	x, _ := ioutil.ReadAll(in.Body)
+	x := []byte{}
+	if in.Body != nil {
+		x, _ = ioutil.ReadAll(in.Body)
+	}
 	_, _ = io.WriteString(out, fmt.Sprintf("In:%s\n", string(x)))
 	_, _ = io.WriteString(out, fmt.Sprintf("Out:%s\n", "Hello World!"))
 }

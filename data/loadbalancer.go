@@ -78,6 +78,7 @@ func EnglangLoadBalancing(path string, shardList string) func(http.ResponseWrite
 				if request.URL.RawQuery != "" {
 					query = "?" + request.URL.RawQuery
 				}
+				sent.WriteString(request.Method + "\n")
 				sent.WriteString(rPath + query + "\n")
 				sent.Write(rBody)
 				sentBytes := sent.Bytes()
