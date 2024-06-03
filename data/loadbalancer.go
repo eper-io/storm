@@ -125,10 +125,16 @@ func EnglangLoadBalancing(path string, shardList string) func(http.ResponseWrite
 	}
 }
 
-func RunShardList(shardKey string, lambda func(out *bytes.Buffer, in []byte, i int)) {
+func RunShardListHttp(shardKey string, lambda http.HandlerFunc) []byte {
+	return RunShardList(shardKey, func(out *bytes.Buffer, in []byte, i int) {
+		RunServerlessLambdaBurstOnHttp(out, in, i, lambda)
+	})
+}
+
+func RunShardList(shardKey string, lambda func(out *bytes.Buffer, in []byte, i int)) []byte {
 	currentShards := TmpGet(shardKey)
 	if string(currentShards) == "" {
-		return
+		return currentShards
 	}
 	shards := string(TmpGet(shardKey))
 	list := string(TmpGet(shards))
@@ -142,12 +148,12 @@ func RunShardList(shardKey string, lambda func(out *bytes.Buffer, in []byte, i i
 	}
 	fmt.Println("Running shards", n)
 	for i := 0; i < n; i++ {
-		RunShardList1(list, i, lambda)
+		RunSingleShard(list, i, lambda)
 	}
-
+	return currentShards
 }
 
-func RunShardList1(list string, shardIndex int, lambda func(out *bytes.Buffer, in []byte, i int)) {
+func RunSingleShard(list string, shardIndex int, lambda func(out *bytes.Buffer, in []byte, i int)) {
 	x := bufio.NewScanner(bytes.NewBufferString(list))
 	n := 0
 	for x.Scan() {
@@ -232,4 +238,38 @@ func TmpPut(address string, put []byte) []byte {
 		_ = resp.Body.Close()
 	}
 	return y
+}
+
+type serverlessHttpWriter struct {
+	header     http.Header
+	out        bytes.Buffer
+	statusCode int
+}
+
+func (s serverlessHttpWriter) Header() http.Header {
+	return s.header
+}
+
+func (s *serverlessHttpWriter) Write(x []byte) (int, error) {
+	return s.out.Write(x)
+}
+
+func (s *serverlessHttpWriter) WriteHeader(statusCode int) {
+	s.statusCode = statusCode
+}
+
+func RunServerlessLambdaBurstOnHttp(out *bytes.Buffer, in []byte, shard int, httpFunc http.HandlerFunc) {
+	x := bytes.SplitN(in, []byte{'\n'}, 4)
+	if len(x) != 4 {
+		// Fallback path
+		(*out).WriteString(fmt.Sprintf("Shard: %d\nTime:%s\nIn:\n%s\nOut:\n%s\n", shard, time.Now().Format(time.RFC3339Nano), string(in), "Hello World!"))
+		return
+	}
+	m := string(x[1])
+	u := string(x[2])
+	request := bytes.NewBuffer(x[3])
+	req, _ := http.NewRequest(m, u, request)
+	var z serverlessHttpWriter
+	httpFunc(&z, req)
+	out.WriteString(fmt.Sprintf("Shard: %d\nTime:%s\n%s", shard, time.Now().Format(time.RFC3339Nano), string(z.out.Bytes())))
 }

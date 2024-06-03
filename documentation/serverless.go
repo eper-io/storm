@@ -24,50 +24,16 @@ import (
 
 func main() {
 	api := "https://hour.schmied.us/df94d5658feda65e9d5cdac6bcd50b8012c835ab884f0a74c5fa46e396b05ae7.tig"
-	data.RunShardList(api, RunServerlessLambdaBurstOnHttp)
+	snapshot := data.RunShardListHttp(api, MyHttpHandler)
 	for {
 		// Infinite loop
-		// TODO check for modifications
 		time.Sleep(10 * time.Second)
+		current := data.TmpGet(api)
+		// Check for modifications
+		if !bytes.Equal(current, snapshot) {
+			return
+		}
 	}
-}
-
-type serverlessHttpWriter struct {
-	header     http.Header
-	out        bytes.Buffer
-	statusCode int
-}
-
-func (s serverlessHttpWriter) Header() http.Header {
-	return s.header
-}
-
-func (s *serverlessHttpWriter) Write(x []byte) (int, error) {
-	return s.out.Write(x)
-}
-
-func (s *serverlessHttpWriter) WriteHeader(statusCode int) {
-	s.statusCode = statusCode
-}
-
-func RunServerlessLambdaBurstOnHttp(out *bytes.Buffer, in []byte, shard int) {
-	x := bytes.SplitN(in, []byte{'\n'}, 4)
-	if len(x) != 4 {
-		// Fallback path
-		(*out).WriteString(fmt.Sprintf("Shard: %d\nTime:%s\nIn:\n%s\nOut:\n%s\n", shard, time.Now().Format(time.RFC3339Nano), string(in), "Hello World!"))
-		return
-	}
-	m := string(x[1])
-	u := string(x[2])
-	request := bytes.NewBuffer(x[3])
-	fmt.Println(u, m, request.Len())
-	req, _ := http.NewRequest(m, u, request)
-	//if req == nil {
-	//	req, _ = http.NewRequest(m, u, nil)
-	//}
-	var z serverlessHttpWriter
-	MyHttpHandler(&z, req)
-	out.WriteString(fmt.Sprintf("Shard: %d\nTime:%s\n%s", shard, time.Now().Format(time.RFC3339Nano), string(z.out.Bytes())))
 }
 
 func MyHttpHandler(out http.ResponseWriter, in *http.Request) {
