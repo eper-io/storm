@@ -1,13 +1,13 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"storm/data"
-	"time"
+	"sync"
 )
 
 // This document is Licensed under Creative Commons CC0.
@@ -23,17 +23,9 @@ import (
 // curl -X 'GET' 'http://127.0.0.1:7777/portal/abcd'
 
 func main() {
-	api := "https://hour.schmied.us/df94d5658feda65e9d5cdac6bcd50b8012c835ab884f0a74c5fa46e396b05ae7.tig"
-	snapshot := data.RunShardListHttp(api, MyHttpHandler)
-	for {
-		// Infinite loop
-		time.Sleep(10 * time.Second)
-		current := data.TmpGet(api)
-		// Check for modifications
-		if !bytes.Equal(current, snapshot) {
-			return
-		}
-	}
+	var done sync.WaitGroup
+	data.RunShardClient(os.Stdin, &done, MyHttpHandler)
+	done.Wait()
 }
 
 func MyHttpHandler(out http.ResponseWriter, in *http.Request) {

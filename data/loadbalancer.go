@@ -10,6 +10,7 @@ import (
 	"math/rand"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -125,18 +126,18 @@ func EnglangLoadBalancing(path string, shardList string) func(http.ResponseWrite
 	}
 }
 
-func RunShardListHttp(shardKey string, lambda http.HandlerFunc) []byte {
-	return RunShardList(shardKey, func(out *bytes.Buffer, in []byte, i int) {
+func RunShardListHttp(shardListKey string, shardIndex int, lambda http.HandlerFunc) []byte {
+	return RunShardList(shardListKey, shardIndex, func(out *bytes.Buffer, in []byte, i int) {
 		RunServerlessLambdaBurstOnHttp(out, in, i, lambda)
 	})
 }
 
-func RunShardList(shardKey string, lambda func(out *bytes.Buffer, in []byte, i int)) []byte {
-	currentShards := TmpGet(shardKey)
+func RunShardList(shardListKey string, shardIndex int, lambda func(out *bytes.Buffer, in []byte, i int)) []byte {
+	currentShards := TmpGet(shardListKey)
 	if string(currentShards) == "" {
 		return currentShards
 	}
-	shards := string(TmpGet(shardKey))
+	shards := string(TmpGet(shardListKey))
 	list := string(TmpGet(shards))
 	x := bufio.NewScanner(bytes.NewBufferString(list))
 	n := 0
@@ -146,9 +147,11 @@ func RunShardList(shardKey string, lambda func(out *bytes.Buffer, in []byte, i i
 			n++
 		}
 	}
-	fmt.Println("Running shards", n)
 	for i := 0; i < n; i++ {
-		RunSingleShard(list, i, lambda)
+		if shardIndex == -1 || shardIndex == i {
+			//fmt.Println("Running shard", i)
+			RunSingleShard(list, i, lambda)
+		}
 	}
 	return currentShards
 }
@@ -272,4 +275,30 @@ func RunServerlessLambdaBurstOnHttp(out *bytes.Buffer, in []byte, shard int, htt
 	var z serverlessHttpWriter
 	httpFunc(&z, req)
 	out.WriteString(fmt.Sprintf("Shard: %d\nTime:%s\n%s", shard, time.Now().Format(time.RFC3339Nano), string(z.out.Bytes())))
+}
+
+func RunShardClient(instructions io.Reader, done *sync.WaitGroup, handler http.HandlerFunc) {
+	implementation := bufio.NewScanner(instructions)
+	for implementation.Scan() {
+		command := strings.TrimSpace(implementation.Text())
+		shard := -1
+		api := "noapiurl"
+		n, _ := fmt.Sscanf(command, "Run shard id %d from api pointed by %s key.", &shard, &api)
+		if n == 2 {
+			fmt.Println(command)
+		}
+		done.Add(1)
+		go func(api string, shard int) {
+			snapshot := RunShardListHttp(api, shard, handler)
+			for {
+				// Check for api version modification let restart to update, if needed
+				time.Sleep(10 * time.Second)
+				current := TmpGet(api)
+				if !bytes.Equal(current, snapshot) {
+					done.Done()
+					return
+				}
+			}
+		}(api, shard)
+	}
 }
