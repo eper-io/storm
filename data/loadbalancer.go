@@ -55,7 +55,7 @@ func EnglangLoadBalancing(path string, shardList string) func(http.ResponseWrite
 		// Build shard index
 		shard := ""
 		rBody, _ := io.ReadAll(request.Body)
-		rPath := "/" + request.URL.Path[len(path):]
+		rPath := "/" + request.URL.Path // We use absolute to save dev time request.URL.Path[len(path):]
 		shard = GetShard(rPath, rBody, m)
 
 		// Send request to shards
