@@ -33,6 +33,7 @@ func MyHttpHandler(out http.ResponseWriter, in *http.Request) {
 	if in.Body != nil {
 		x, _ = ioutil.ReadAll(in.Body)
 	}
+	_, _ = io.WriteString(out, fmt.Sprintf("Path:%s\n", in.URL.String()))
 	_, _ = io.WriteString(out, fmt.Sprintf("In:%s\n", string(x)))
 	_, _ = io.WriteString(out, fmt.Sprintf("Out:%s\n", "Hello World!"))
 }
