@@ -25,7 +25,7 @@ import (
 // You should have received a copy of the CC0 Public Domain Dedication along with this document.
 // If not, see https://creativecommons.org/publicdomain/zero/1.0/legalcode.
 
-var MemCache = "https://hour.schmied.us"
+var MemCache = "https://mem.showmycard.com"
 var BlockList = make([]string, 0)
 var LastSnapshot = ""
 

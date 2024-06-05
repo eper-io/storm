@@ -1,14 +1,14 @@
 # fmt.Sprintf("/%x.tig", sha256.Sum256([]byte("55E2C4BE-A96C-46A2-AADD-80715E0A16CD")))
-# Set the value of key https://hour.schmied.us/df94d5658feda65e9d5cdac6bcd50b8012c835ab884f0a74c5fa46e396b05ae7.tig to https://data.schmied.us/4de54092a6eafce98cf067abf9bb0d54ba3501f0eafd4cb8b03c42e20ee4ada9.tig value.
-Set the value of key https://hour.schmied.us/df94d5658feda65e9d5cdac6bcd50b8012c835ab884f0a74c5fa46e396b05ae7.tig to a value of 100 shards.
-Response load balancer on /portal/ to shard list from https://hour.schmied.us/df94d5658feda65e9d5cdac6bcd50b8012c835ab884f0a74c5fa46e396b05ae7.tig paths.
+# Set the value of key https://mem.showmycard.com/df94d5658feda65e9d5cdac6bcd50b8012c835ab884f0a74c5fa46e396b05ae7.tig to https://data.schmied.us/4de54092a6eafce98cf067abf9bb0d54ba3501f0eafd4cb8b03c42e20ee4ada9.tig value.
+Set the value of key https://mem.showmycard.com/df94d5658feda65e9d5cdac6bcd50b8012c835ab884f0a74c5fa46e396b05ae7.tig to a value of 100 shards.
+Response load balancer on /portal/ to shard list from https://mem.showmycard.com/df94d5658feda65e9d5cdac6bcd50b8012c835ab884f0a74c5fa46e396b05ae7.tig paths.
 Response hello on /hello path.
 Response bursts on /burst/ path.
 Response searches columnar indexes on /columnar/ path.
 Listen https on 443 port with key.pem and certificate.pem set.
 Listen http on 7777 port.
 Proxy https://www.schmied.us on / path.
-Proxy https://hour.schmied.us on /data/ path.
+Proxy https://mem.showmycard.com on /data/ path.
 Proxy https://faas-nyc1-2ef2e6cc.doserverless.co/api/v1/web/fn-6d95f7c5-743c-46a3-954f-bfafc9e7fce6/public/estimate on /estimate path.
 Log on /send path and check modifications on /messages path.
 File proxy https://data.schmied.us/60e6b29b43d3c5013b1410cd0dd246043f4d0f8df0518172b1ce36a059c3df79.tig?Content-Type=text/html on /inbox path.
