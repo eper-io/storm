@@ -95,6 +95,12 @@ func Setup() {
 				fmt.Printf("File: %s\nLine: %d\n", file, line1)
 				fmt.Println(line)
 			}
+			q := EnglangGetFields(line, "Echo ", "and continue.")
+			if len(q) == 1 {
+				_, file, line1, _ := runtime.Caller(0)
+				fmt.Printf("File: %s\nLine: %d\n", file, line1)
+				fmt.Println(q[0])
+			}
 			var key string
 			n, _ = fmt.Sscanf(line, "Set the value of key %s to %s value.", &key, &value)
 			if n == 2 {
