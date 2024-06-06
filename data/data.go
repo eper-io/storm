@@ -104,7 +104,7 @@ func Setup() {
 			var key string
 			n, _ = fmt.Sscanf(line, "Set the value of key %s to %s value.", &key, &value)
 			if n == 2 {
-				TmpPut(key, []byte(value))
+				TmpPut(MemCache+key, []byte(value))
 				_, file, line1, _ := runtime.Caller(0)
 				fmt.Printf("File: %s\nLine: %d\n", file, line1)
 				fmt.Println(line)
@@ -117,8 +117,18 @@ func Setup() {
 					key1 := bytes.NewBufferString(fmt.Sprintf("%16x%16x%16x%16x", rand.Uint64(), rand.Uint64(), rand.Uint64(), rand.Uint64()))
 					buf.WriteString(fmt.Sprintf(MemCache+"/%x.tig"+"?shard=%d"+"\n", sha256.Sum256(key1.Bytes()), i))
 				}
-				address := TmpPut(fmt.Sprintf("%s?format=%s*", MemCache, MemCache), buf.Bytes())
-				TmpPut(key, address)
+				shards := buf.Bytes()
+				root := MemCache
+				key1 := key
+				address2 := TmpPut(fmt.Sprintf("%s?format=%s*", root, root), shards)
+				TmpPut(root+key1, address2)
+				go func(keepAlive1 string, keepAlive2 string, shards1 []byte) {
+					for {
+						time.Sleep(10 * time.Second)
+						address2 := TmpPut(fmt.Sprintf("%s?format=%s*", root, root), shards1)
+						TmpPut(root+key1, address2)
+					}
+				}(string(address2), root+key1, shards)
 				_, file, line1, _ := runtime.Caller(0)
 				fmt.Printf("File: %s\nLine: %d\n", file, line1)
 				fmt.Println(line)

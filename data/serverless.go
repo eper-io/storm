@@ -30,11 +30,12 @@ func RunShardClient(instructions io.Reader, done *sync.WaitGroup, handler http.H
 				time.Sleep(10 * time.Second)
 				current := ServerlessGet(api)
 				if !bytes.Equal(current, snapshot) {
+					fmt.Println(string(current), string(snapshot))
 					done.Done()
 					return
 				}
 			}
-		}(api, shard)
+		}(MemCache+api, shard)
 	}
 }
 
@@ -125,19 +126,22 @@ func (s *serverlessHttpWriter) WriteHeader(statusCode int) {
 }
 
 func RunServerlessLambdaBurstOnHttp(out *bytes.Buffer, in []byte, shard int, httpFunc http.HandlerFunc) {
-	x := bytes.SplitN(in, []byte{'\n'}, 4)
-	if len(x) != 4 {
+	x := bytes.SplitN(in, []byte{'\n'}, 5)
+	if len(x) != 5 {
 		// Fallback path
 		(*out).WriteString(fmt.Sprintf("Shard: %d\nTime:%s\nIn:\n%s\nOut:\n%s\n", shard, time.Now().Format(time.RFC3339Nano), string(in), "Hello World!"))
 		return
 	}
-	m := string(x[1])
-	u := string(x[2])
-	request := bytes.NewBuffer(x[3])
+	var selected int
+	s := string(x[1])
+	_, _ = fmt.Sscanf(s, "Selected shard is %d .", &selected)
+	m := string(x[2])
+	u := string(x[3])
+	request := bytes.NewBuffer(x[4])
 	req, _ := http.NewRequest(m, u, request)
 	var z serverlessHttpWriter
 	httpFunc(&z, req)
-	out.WriteString(fmt.Sprintf("Shard: %d\nTime:%s\n%s", shard, time.Now().Format(time.RFC3339Nano), string(z.out.Bytes())))
+	out.WriteString(fmt.Sprintf("Shard: %d\nSelected: %d\nTime:%s\n%s", shard, selected, time.Now().Format(time.RFC3339Nano), string(z.out.Bytes())))
 }
 
 func ServerlessGet(address string) []byte {
