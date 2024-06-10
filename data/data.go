@@ -25,9 +25,9 @@ import (
 // You should have received a copy of the CC0 Public Domain Dedication along with this document.
 // If not, see https://creativecommons.org/publicdomain/zero/1.0/legalcode.
 
-var MemCache = "https://localhost.schmied.us"
-var ApiCache = "https://localhost.schmied.us"
-var FallbackCache = "https://mem.showmycard.com"
+// var FallbackCache = "https://localhost.schmied.us"
+var MemCache = "https://mem.showmycard.com"
+var ApiCache = "https://mem.showmycard.com"
 var BlockList = make([]string, 0)
 var LastSnapshot = ""
 
