@@ -100,7 +100,14 @@ func EnglangLoadBalancing(path string, shardList string) func(http.ResponseWrite
 							// TODO wait before the for instead
 							recvBytes = TmpGet(shardAddress)
 						}
-						if len(recvBytes) < 32 {
+						if bytes.HasPrefix(recvBytes, sentBytes[0:32]) && !bytes.Equal(recvBytes, sentBytes) {
+							// Reply
+							(*put) <- recvBytes[32:]
+							// Acknowledge
+							TmpPut(shardAddress, []byte("ack"))
+							return
+						}
+						if len(recvBytes) != len(sentBytes) {
 							// Retry
 							// This might sound too unprofessional.
 							// The basic idea is that 99.9% of the cases have atomicity, consistency, integrity.
@@ -109,13 +116,6 @@ func EnglangLoadBalancing(path string, shardList string) func(http.ResponseWrite
 							TmpPut(shardAddress, sentBytes)
 							time.Sleep(time.Duration(rand.Int()%8) * time.Millisecond)
 							continue
-						}
-						if bytes.HasPrefix(recvBytes, sentBytes[0:32]) && !bytes.Equal(recvBytes, sentBytes) {
-							// Reply
-							(*put) <- recvBytes[32:]
-							// Acknowledge
-							TmpPut(shardAddress, []byte("ack"))
-							return
 						}
 						time.Sleep(time.Duration(rand.Int()%8) * time.Millisecond)
 					}

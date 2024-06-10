@@ -34,6 +34,7 @@ func MyHttpHandler(out http.ResponseWriter, in *http.Request) {
 	if in.Body != nil {
 		x, _ = ioutil.ReadAll(in.Body)
 	}
+	//time.Sleep(time.Duration(rand.Int()%200) * time.Millisecond)
 	_, _ = io.WriteString(out, fmt.Sprintf("Shard: %s\nSelected: %s\nTime:%s\n", in.Header.Get("Shard"), in.Header.Get("Selected"), time.Now().Format(time.RFC3339Nano)))
 	_, _ = io.WriteString(out, fmt.Sprintf("Path:%s\n", in.URL.String()))
 	_, _ = io.WriteString(out, fmt.Sprintf("In:%s\n", string(x)))

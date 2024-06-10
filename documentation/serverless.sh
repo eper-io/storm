@@ -7,6 +7,9 @@
 # You should have received a copy of the CC0 Public Domain Dedication along with this document.
 # If not, see https://creativecommons.org/publicdomain/zero/1.0/legalcode.
 
+# Test it:
+# bash -c 'while true; do time curl -X 'GET' http://127.0.0.1:7777/portal/; done' 2>/tmp/time1 >/tmp/data1
+
 cat <<EOF | go run documentation/serverless.go
 Run shard id 0 from api pointed by /df94d5658feda65e9d5cdac6bcd50b8012c835ab884f0a74c5fa46e396b05ae7.tig key.
 Run shard id 1 from api pointed by /df94d5658feda65e9d5cdac6bcd50b8012c835ab884f0a74c5fa46e396b05ae7.tig key.

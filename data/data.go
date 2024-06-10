@@ -25,8 +25,9 @@ import (
 // You should have received a copy of the CC0 Public Domain Dedication along with this document.
 // If not, see https://creativecommons.org/publicdomain/zero/1.0/legalcode.
 
-var MemCache = "https://mem.showmycard.com"
-var ApiCache = "https://mem.showmycard.com"
+var MemCache = "https://localhost.schmied.us"
+var ApiCache = "https://localhost.schmied.us"
+var FallbackCache = "https://mem.showmycard.com"
 var BlockList = make([]string, 0)
 var LastSnapshot = ""
 
@@ -282,6 +283,9 @@ func Setup() {
 			}
 			n, _ = fmt.Sscanf(line, "Response load balancer on %s to shard list from %s paths.", &value, &value1)
 			if n == 2 {
+				if !strings.HasPrefix(value1, "http") {
+					value1 = fmt.Sprintf("%s%s", ApiCache, value1)
+				}
 				shardListPointer := string(EnglangFetch(value1))
 				shardList := string(EnglangFetch(shardListPointer))
 				http.HandleFunc(value, EnglangLoadBalancing(value, shardList))
