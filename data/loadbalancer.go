@@ -38,6 +38,10 @@ import (
 // This enables cheaper artificial intelligence training solutions.
 // TODO collect PUT with delayed write and data compressing
 
+// Use this for testing:
+// curl -X 'PUT' -d 'abcdef' 'http://127.0.0.1:7777/portal/abcd'
+// curl -X 'GET' 'http://127.0.0.1:7777/portal/abcde'
+
 func EnglangLoadBalancing(path string, shardList string) func(http.ResponseWriter, *http.Request) {
 	return func(writer http.ResponseWriter, request *http.Request) {
 		shards := shardList
@@ -66,6 +70,9 @@ func EnglangLoadBalancing(path string, shardList string) func(http.ResponseWrite
 		n := 0
 		for x.Scan() {
 			shardAddress := x.Text()
+			if strings.TrimSpace(shardAddress) == "" {
+				continue
+			}
 			useThisShard := false
 			if request.Method == "GET" {
 				// Aggregate of all shards
@@ -93,27 +100,48 @@ func EnglangLoadBalancing(path string, shardList string) func(http.ResponseWrite
 					var recvBytes []byte
 					// Just use the good old Ethernet algorithm
 					// It has been working for decades for datacenter networks.
-					TmpPut(shardAddress, sentBytes)
+					start := time.Now()
+					for {
+						ret := TmpPut(shardAddress+"?setifnot=1&format=%25s", sentBytes)
+						if len(ret) > 0 {
+							break
+						}
+						if time.Now().Sub(start).Seconds() > 5 {
+							fmt.Println("ererevdsfd")
+							return
+						}
+					}
 					for {
 						recvBytes = TmpGet(shardAddress)
-						if len(recvBytes) == 0 {
-							// TODO wait before the for instead
-							recvBytes = TmpGet(shardAddress)
-						}
+						// TODO Needed?
+						//if len(recvBytes) == 0 {
+						//	recvBytes = TmpGet(shardAddress)
+						//}
 						if bytes.HasPrefix(recvBytes, sentBytes[0:32]) && !bytes.Equal(recvBytes, sentBytes) {
 							// Reply
 							(*put) <- recvBytes[32:]
 							// Acknowledge
-							TmpPut(shardAddress, []byte("ack"))
+							// TODO Needed?
+							//TmpDelete(shardAddress)
+							TmpPut(shardAddress, []byte(""))
 							return
 						}
-						if len(recvBytes) != len(sentBytes) {
+						if !bytes.Equal(recvBytes[0:32], sentBytes[0:32]) {
 							// Retry
 							// This might sound too unprofessional.
 							// The basic idea is that 99.9% of the cases have atomicity, consistency, integrity.
 							// Many programming languages assign 50%+ resources and code to solve these.
 							// We do it here with just three lines.
-							TmpPut(shardAddress, sentBytes)
+							for {
+								ret := TmpPut(shardAddress+"?setifnot=1&format=%25s", sentBytes)
+								if len(ret) > 0 {
+									break
+								}
+								if time.Now().Sub(start).Seconds() > 10 {
+									fmt.Println("ererevdsfd")
+									return
+								}
+							}
 							time.Sleep(time.Duration(rand.Int()%8) * time.Millisecond)
 							continue
 						}
