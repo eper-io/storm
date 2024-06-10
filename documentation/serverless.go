@@ -8,6 +8,7 @@ import (
 	"os"
 	"storm/data"
 	"sync"
+	"time"
 )
 
 // This document is Licensed under Creative Commons CC0.
@@ -33,7 +34,9 @@ func MyHttpHandler(out http.ResponseWriter, in *http.Request) {
 	if in.Body != nil {
 		x, _ = ioutil.ReadAll(in.Body)
 	}
+	_, _ = io.WriteString(out, fmt.Sprintf("Shard: %s\nSelected: %s\nTime:%s\n", in.Header.Get("Shard"), in.Header.Get("Selected"), time.Now().Format(time.RFC3339Nano)))
 	_, _ = io.WriteString(out, fmt.Sprintf("Path:%s\n", in.URL.String()))
 	_, _ = io.WriteString(out, fmt.Sprintf("In:%s\n", string(x)))
 	_, _ = io.WriteString(out, fmt.Sprintf("Out:%s\n", "Hello World!"))
+	_, _ = io.WriteString(out, fmt.Sprintf("%s\n", "---"))
 }

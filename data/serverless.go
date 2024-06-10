@@ -5,8 +5,10 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"math/rand"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -42,7 +44,7 @@ func RunShardClient(instructions io.Reader, done *sync.WaitGroup, handler http.H
 					return
 				}
 			}
-		}(MemCache+api, shard)
+		}(ApiCache+api, shard)
 	}
 }
 
@@ -114,9 +116,17 @@ func RunShard(shardAddress string, i int, lambda func(out *bytes.Buffer, in []by
 	}
 }
 
+func newServerlessResponseWriter(b *bytes.Buffer) serverlessHttpWriter {
+	ret := serverlessHttpWriter{}
+	ret.out = b
+	ret.header = http.Header{}
+	ret.statusCode = http.StatusNotImplemented
+	return ret
+}
+
 type serverlessHttpWriter struct {
 	header     http.Header
-	out        bytes.Buffer
+	out        *bytes.Buffer
 	statusCode int
 }
 
@@ -146,9 +156,22 @@ func RunServerlessLambdaBurstOnHttp(out *bytes.Buffer, in []byte, shard int, htt
 	u := string(x[3])
 	request := bytes.NewBuffer(x[4])
 	req, _ := http.NewRequest(m, u, request)
-	var z serverlessHttpWriter
+	req.Header.Set("Shard", strconv.Itoa(shard))
+	req.Header.Set("Selected", strconv.Itoa(selected))
+	z := newServerlessResponseWriter(out)
 	httpFunc(&z, req)
-	out.WriteString(fmt.Sprintf("Shard: %d\nSelected: %d\nTime:%s\n%s", shard, selected, time.Now().Format(time.RFC3339Nano), string(z.out.Bytes())))
+}
+
+func MockHttpHandler(out http.ResponseWriter, in *http.Request) {
+	x := []byte{}
+	if in.Body != nil {
+		x, _ = ioutil.ReadAll(in.Body)
+	}
+	_, _ = io.WriteString(out, fmt.Sprintf("Shard: %s\nSelected: %s\nTime:%s\n", in.Header.Get("Shard"), in.Header.Get("Selected"), time.Now().Format(time.RFC3339Nano)))
+	_, _ = io.WriteString(out, fmt.Sprintf("Path:%s\n", in.URL.String()))
+	_, _ = io.WriteString(out, fmt.Sprintf("In:%s\n", string(x)))
+	_, _ = io.WriteString(out, fmt.Sprintf("Out:%s\n", "Hello World!"))
+	_, _ = io.WriteString(out, fmt.Sprintf("%s\n", "---"))
 }
 
 func ServerlessGet(address string) []byte {

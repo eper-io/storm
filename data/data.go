@@ -26,6 +26,7 @@ import (
 // If not, see https://creativecommons.org/publicdomain/zero/1.0/legalcode.
 
 var MemCache = "https://mem.showmycard.com"
+var ApiCache = "https://mem.showmycard.com"
 var BlockList = make([]string, 0)
 var LastSnapshot = ""
 
