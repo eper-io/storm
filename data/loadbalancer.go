@@ -54,6 +54,10 @@ func EnglangLoadBalancing(path string, shardList string) func(http.ResponseWrite
 				m++
 			}
 		}
+		if m == 0 {
+			http.Error(writer, "No shards", http.StatusServiceUnavailable)
+			return
+		}
 		var results = make([]*chan []byte, 0)
 
 		// Build shard index
@@ -106,10 +110,11 @@ func EnglangLoadBalancing(path string, shardList string) func(http.ResponseWrite
 						if len(ret) > 0 {
 							break
 						}
-						if time.Now().Sub(start).Seconds() > 5 {
-							fmt.Println("ererevdsfd")
+						if time.Now().Sub(start).Seconds() > 10 {
+							// TODO error message
 							return
 						}
+						time.Sleep(time.Duration(rand.Int()%8) * time.Millisecond)
 					}
 					for {
 						recvBytes = TmpGet(shardAddress)
@@ -138,7 +143,7 @@ func EnglangLoadBalancing(path string, shardList string) func(http.ResponseWrite
 									break
 								}
 								if time.Now().Sub(start).Seconds() > 10 {
-									fmt.Println("ererevdsfd")
+									// TODO error message
 									return
 								}
 							}

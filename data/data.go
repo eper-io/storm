@@ -27,7 +27,7 @@ import (
 
 // var FallbackCache = "https://localhost.schmied.us"
 var MemCache = "https://mem.showmycard.com"
-var ApiCache = "https://mem.showmycard.com"
+var ApiCache = "https://localhost.schmied.us"
 var BlockList = make([]string, 0)
 var LastSnapshot = ""
 
@@ -117,10 +117,10 @@ func Setup() {
 				buf := bytes.Buffer{}
 				for i := 0; i < num; i++ {
 					key1 := bytes.NewBufferString(fmt.Sprintf("%16x%16x%16x%16x", rand.Uint64(), rand.Uint64(), rand.Uint64(), rand.Uint64()))
-					buf.WriteString(fmt.Sprintf(MemCache+"/%x.tig"+"?shard=%d"+"\n", sha256.Sum256(key1.Bytes()), i))
+					buf.WriteString(fmt.Sprintf(ApiCache+"/%x.tig"+"?shard=%d"+"\n", sha256.Sum256(key1.Bytes()), i))
 				}
 				shards := buf.Bytes()
-				root := MemCache
+				root := ApiCache
 				key1 := key
 				address2 := TmpPut(fmt.Sprintf("%s?format=%s*", root, root), shards)
 				TmpPut(root+key1, address2)

@@ -39,7 +39,6 @@ func RunShardClient(instructions io.Reader, done *sync.WaitGroup, handler http.H
 				time.Sleep(10 * time.Second)
 				current := ServerlessGet(api)
 				if !bytes.Equal(current, snapshot) {
-					//fmt.Println(string(current), string(snapshot))
 					done.Done()
 					return
 				}
