@@ -33,7 +33,8 @@ echo 'apt update && apt install -y docker.io && service docker start && docker p
 echo 'yum install -y docker  && docker ps && touch /etc/containers/nodocker && service docker start' >>/tmp/tig.sh
 echo docker stop storm >>/tmp/tig.sh
 echo docker rm storm >>/tmp/tig.sh
-echo docker run --name storm -d --restart=always -p 443:443 --tmpfs /data:rw,size=4g docker.io/library/golang@sha256:10e3c0f39f8e237baa5b66c5295c578cac42a99536cc9333d8505324a82407d9 bash -c \''curl '$DATAGET$(cat /tmp/tig.txt)'|bash'\' >>/tmp/tig.sh
+# --restart=always is dangerous. Hard to resolve hangs can occur.
+echo docker run --name storm -d -p 443:443 --tmpfs /data:rw,size=4g docker.io/library/golang@sha256:10e3c0f39f8e237baa5b66c5295c578cac42a99536cc9333d8505324a82407d9 bash -c \''curl '$DATAGET$(cat /tmp/tig.txt)'|bash'\' >>/tmp/tig.sh
 echo 'sleep 6; docker ps' >>/tmp/tig.sh
 echo
 
