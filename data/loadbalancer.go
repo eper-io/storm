@@ -42,8 +42,10 @@ import (
 // curl -X 'PUT' -d 'abcdef' 'http://127.0.0.1:7777/portal/abcd'
 // curl -X 'GET' 'http://127.0.0.1:7777/portal/abcde'
 
-func EnglangLoadBalancing(path string, shardList string) func(http.ResponseWriter, *http.Request) {
+func EnglangLoadBalancing(path1 string, shardList string) func(http.ResponseWriter, *http.Request) {
 	return func(writer http.ResponseWriter, request *http.Request) {
+		EnglangSetMime(writer, request)
+
 		shards := shardList
 		// Build shard count
 		m := uint64(0)
@@ -158,6 +160,27 @@ func EnglangLoadBalancing(path string, shardList string) func(http.ResponseWrite
 		for i := 0; i < n; i++ {
 			x := <-(*results[i])
 			_, _ = writer.Write(x)
+		}
+	}
+}
+
+func EnglangSetMime(writer http.ResponseWriter, request *http.Request) {
+	name := request.URL.Path
+	encoding := map[string]string{
+		"htm":  "text/html",
+		"html": "text/html",
+		"png":  "image/png",
+		"jpg":  "image/jpeg",
+		"jpeg": "image/jpeg",
+		"gif":  "image/gif",
+		"css":  "text/css",
+		"js":   "text/javascript",
+		"txt":  "text/plain",
+		"md":   "text/markdown",
+	}
+	for k, v := range encoding {
+		if strings.HasSuffix(name, k) {
+			writer.Header().Set("Content-Type", v)
 		}
 	}
 }
