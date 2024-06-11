@@ -27,7 +27,7 @@ import (
 
 // var FallbackCache = "https://localhost.schmied.us"
 var MemCache = "https://mem.showmycard.com"
-var ApiCache = "https://localhost.schmied.us"
+var ApiCache = "https://mem.showmycard.com"
 var BlockList = make([]string, 0)
 var LastSnapshot = ""
 
