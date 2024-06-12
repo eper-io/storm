@@ -118,6 +118,7 @@ func EnglangLoadBalancing(path1 string, shardList string) func(http.ResponseWrit
 						}
 						time.Sleep(time.Duration(rand.Int()%8) * time.Millisecond)
 					}
+
 					for {
 						recvBytes = TmpGet(shardAddress)
 						// TODO Needed?

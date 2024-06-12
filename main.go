@@ -16,6 +16,11 @@ import (
 func main() {
 	data.Setup()
 	fmt.Println("Started at", time.Now())
+	fmt.Println("Go and run the serverless fab at ", "./documentation/serverless.sh")
+	fmt.Println(`Example request:
+curl -X 'PUT' -d 'abcdef' 'http://127.0.0.1:7777/portal/abcd'
+Example request:
+curl -X 'GET' 'http://127.0.0.1:7777/portal/abcd'`)
 	for {
 		// TODO running logic in a forked child process cleans up memory for long-haul
 		time.Sleep(10 * time.Minute)

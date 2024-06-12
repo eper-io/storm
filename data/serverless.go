@@ -119,7 +119,7 @@ func newServerlessResponseWriter(b *bytes.Buffer) serverlessHttpWriter {
 	ret := serverlessHttpWriter{}
 	ret.out = b
 	ret.header = http.Header{}
-	ret.statusCode = http.StatusNotImplemented
+	ret.statusCode = http.StatusOK
 	return ret
 }
 
