@@ -118,13 +118,8 @@ func EnglangLoadBalancing(path1 string, shardList string) func(http.ResponseWrit
 						}
 						time.Sleep(time.Duration(rand.Int()%8) * time.Millisecond)
 					}
-
 					for {
 						recvBytes = TmpGet(shardAddress)
-						// TODO Needed?
-						//if len(recvBytes) == 0 {
-						//	recvBytes = TmpGet(shardAddress)
-						//}
 						if bytes.HasPrefix(recvBytes, sentBytes[0:32]) && !bytes.Equal(recvBytes, sentBytes) {
 							// Reply
 							(*put) <- recvBytes[32:]
@@ -134,12 +129,13 @@ func EnglangLoadBalancing(path1 string, shardList string) func(http.ResponseWrit
 							TmpPut(shardAddress, []byte(""))
 							return
 						}
-						if !bytes.Equal(recvBytes[0:32], sentBytes[0:32]) {
-							// Retry
+						if len(recvBytes) < 32 || !bytes.Equal(recvBytes[0:32], sentBytes[0:32]) {
+							// Retry with the Ethernet logic
 							// This might sound too unprofessional.
 							// The basic idea is that 99.9% of the cases have atomicity, consistency, integrity.
 							// Many programming languages assign 50%+ resources and code to solve these.
 							// We do it here with just three lines.
+							time.Sleep(time.Duration(rand.Int()%100) * time.Millisecond)
 							for {
 								ret := TmpPut(shardAddress+"?setifnot=1&format=%25s", sentBytes)
 								if len(ret) > 0 {
@@ -149,6 +145,7 @@ func EnglangLoadBalancing(path1 string, shardList string) func(http.ResponseWrit
 									// TODO error message
 									return
 								}
+								time.Sleep(time.Duration(rand.Int()%8) * time.Millisecond)
 							}
 							time.Sleep(time.Duration(rand.Int()%8) * time.Millisecond)
 							continue

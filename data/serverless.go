@@ -70,7 +70,6 @@ func RunShardList(shardListKey string, shardIndex int, lambda func(out *bytes.Bu
 	}
 	for i := 0; i < n; i++ {
 		if shardIndex == -1 || shardIndex == i {
-			//fmt.Println("Running shard", i)
 			RunSingleShard(list, i, lambda)
 		}
 	}
@@ -96,12 +95,16 @@ func RunShard(shardAddress string, i int, lambda func(out *bytes.Buffer, in []by
 	ServerlessPut(shardAddress, []byte("ack"))
 	sentBytes := []byte{}
 	for {
+		// This interation eliminates a mutex and handles all synchronization.
+		// Use 1000-10000 shards for better performance.
 		recvBytes := ServerlessGet(shardAddress)
 		if len(recvBytes) > 0 && len(sentBytes) > 0 && bytes.Equal(recvBytes, sentBytes) {
+			time.Sleep(time.Duration(rand.Int()%8) * time.Millisecond)
 			continue
 		}
 		if len(recvBytes) == 0 {
 			sentBytes = []byte{}
+			time.Sleep(time.Duration(rand.Int()%8) * time.Millisecond)
 			continue
 		}
 		if len(recvBytes) > 32 {
