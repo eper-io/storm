@@ -113,7 +113,7 @@ func EnglangLoadBalancing(path1 string, shardList string) func(http.ResponseWrit
 							break
 						}
 						if time.Now().Sub(start).Seconds() > 10 {
-							// TODO error message
+							fmt.Println("02D4B1AC-7036-46F3-8685-60BA08A3C338")
 							return
 						}
 						time.Sleep(time.Duration(rand.Int()%8) * time.Millisecond)
@@ -124,8 +124,8 @@ func EnglangLoadBalancing(path1 string, shardList string) func(http.ResponseWrit
 							// Reply
 							(*put) <- recvBytes[32:]
 							// Acknowledge
-							// TODO Needed?
-							//TmpDelete(shardAddress)
+							// This is a little quicker than TmpDelete(shardAddress)
+							// Tig will clean it up
 							TmpPut(shardAddress, []byte(""))
 							return
 						}
@@ -135,14 +135,13 @@ func EnglangLoadBalancing(path1 string, shardList string) func(http.ResponseWrit
 							// The basic idea is that 99.9% of the cases have atomicity, consistency, integrity.
 							// Many programming languages assign 50%+ resources and code to solve these.
 							// We do it here with just three lines.
-							time.Sleep(time.Duration(rand.Int()%100) * time.Millisecond)
 							for {
 								ret := TmpPut(shardAddress+"?setifnot=1&format=%25s", sentBytes)
 								if len(ret) > 0 {
 									break
 								}
 								if time.Now().Sub(start).Seconds() > 10 {
-									// TODO error message
+									fmt.Println("C2E0EA23-1A88-4418-B57D-8E5F4A72CAED")
 									return
 								}
 								time.Sleep(time.Duration(rand.Int()%8) * time.Millisecond)

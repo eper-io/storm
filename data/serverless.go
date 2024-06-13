@@ -92,7 +92,8 @@ func RunSingleShard(list string, shardIndex int, lambda func(out *bytes.Buffer, 
 }
 
 func RunShard(shardAddress string, i int, lambda func(out *bytes.Buffer, in []byte, i int)) {
-	ServerlessPut(shardAddress, []byte("ack"))
+	// This is a little quicker than ServerlessDelete(shardAddress)
+	TmpPut(shardAddress, []byte(""))
 	sentBytes := []byte{}
 	for {
 		// This interation eliminates a mutex and handles all synchronization.
