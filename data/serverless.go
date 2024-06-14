@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -159,6 +160,11 @@ func RunServerlessLambdaBurstOnHttp(out *bytes.Buffer, in []byte, shard int, htt
 	u := string(x[3])
 	request := bytes.NewBuffer(x[4])
 	req, _ := http.NewRequest(m, u, request)
+	// TODO panic: runtime error: invalid memory address or nil pointer dereference
+	if req == nil {
+		fmt.Println("afdsf", m, u)
+		os.Exit(1)
+	}
 	req.Header.Set("Shard", strconv.Itoa(shard))
 	req.Header.Set("Selected", strconv.Itoa(selected))
 	z := newServerlessResponseWriter(out)
