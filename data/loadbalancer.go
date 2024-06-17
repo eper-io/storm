@@ -97,7 +97,8 @@ func EnglangLoadBalancing(path1 string, shardList string) func(http.ResponseWrit
 				sent.WriteString(fmt.Sprintf("Selected shard is %d ."+"\n", selected))
 				sent.WriteString(request.Method + "\n")
 				sent.WriteString(rPath + query + "\n")
-				sent.Write(rBody)
+				dfg := TmpPut(ApiCache+"?format="+ApiCache+"%25s", rBody)
+				sent.Write(dfg)
 				sentBytes := sent.Bytes()
 				ch := make(chan []byte)
 				results = append(results, &ch)
@@ -108,6 +109,7 @@ func EnglangLoadBalancing(path1 string, shardList string) func(http.ResponseWrit
 					// It has been working for decades for datacenter networks.
 					start := time.Now()
 					for {
+						// Indirect put
 						ret := TmpPut(shardAddress+"?setifnot=1&format=%25s", sentBytes)
 						if len(ret) > 0 {
 							break
@@ -122,7 +124,8 @@ func EnglangLoadBalancing(path1 string, shardList string) func(http.ResponseWrit
 						recvBytes = TmpGet(shardAddress)
 						if bytes.HasPrefix(recvBytes, sentBytes[0:32]) && !bytes.Equal(recvBytes, sentBytes) {
 							// Reply
-							(*put) <- recvBytes[32:]
+							asdsa := recvBytes[32:]
+							*put <- TmpGet(string(asdsa))
 							// Acknowledge
 							// This is a little quicker than TmpDelete(shardAddress)
 							// Tig will clean it up

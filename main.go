@@ -20,7 +20,9 @@ func main() {
 	fmt.Println(`Example request:
 curl -X 'PUT' -d 'abcdef' 'http://127.0.0.1:7777/portal/abcd'
 Example request:
-curl -X 'GET' 'http://127.0.0.1:7777/portal/abcd'`)
+curl -X 'GET' 'http://127.0.0.1:7777/portal/abcd'
+Example burst:
+bash -c 'while true; do time curl -X 'GET' http://127.0.0.1:7777/portal/; done' 2>/tmp/time1 >/tmp/data1`)
 	for {
 		// TODO running logic in a forked child process cleans up memory for long-haul
 		time.Sleep(10 * time.Minute)

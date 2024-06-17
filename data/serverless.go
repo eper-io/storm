@@ -111,7 +111,20 @@ func RunShard(shardAddress string, i int, lambda func(out *bytes.Buffer, in []by
 		}
 		if len(recvBytes) > 32 {
 			x := bytes.NewBuffer(recvBytes[0:32])
-			lambda(x, recvBytes, i)
+			sc := bufio.NewScanner(bytes.NewBuffer(recvBytes))
+			expand := ""
+			for sc.Scan() {
+				expand = sc.Text()
+			}
+			y := bytes.NewBuffer(recvBytes[0 : len(recvBytes)-len([]byte(expand))])
+			expanded := ServerlessGet(expand)
+			y.Write(expanded)
+			l := y.Bytes()
+			o := bytes.NewBuffer([]byte{})
+			lambda(o, l, i)
+
+			addrsd := ServerlessPut(ApiCache+"?format="+ApiCache+"%25s", o.Bytes())
+			x.Write(addrsd)
 			sentBytes = x.Bytes()
 			ServerlessPut(shardAddress, sentBytes)
 			time.Sleep(time.Duration(rand.Int()%3) * time.Millisecond)

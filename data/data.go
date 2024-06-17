@@ -26,7 +26,7 @@ import (
 // If not, see https://creativecommons.org/publicdomain/zero/1.0/legalcode.
 
 // var FallbackCache = "https://localhost.schmied.us"
-var MemCache = "https://mem.showmycard.com"
+var MemCache = "https://localhost.schmied.us"
 var ApiCache = "https://localhost.schmied.us"
 var BlockList = make([]string, 0)
 var LastSnapshot = ""
@@ -40,6 +40,11 @@ func Setup() {
 		_ = os.Setenv("IMPLEMENTATION", "./res/demo.txt")
 	}
 
+	_, err := http.Get(MemCache)
+	if err != nil {
+		MemCache = "https://localhost.schmied.us"
+		ApiCache = "https://localhost.schmied.us"
+	}
 	// We do a very conservative approach to logging.
 	// We log the configuration input, but nothing else.
 	// Extensive logging just opens vulnerabilities.
